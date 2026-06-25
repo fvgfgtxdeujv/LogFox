@@ -60,6 +60,15 @@ internal class EditFilterFragment :
         }
     }
 
+    // Setters that update each field without firing its text-changed callback, so rendering state
+    // back into the form is not mistaken for a user edit (which would mark the form dirty).
+    private lateinit var setUidText: (CharSequence?) -> Unit
+    private lateinit var setPidText: (CharSequence?) -> Unit
+    private lateinit var setTidText: (CharSequence?) -> Unit
+    private lateinit var setPackageNameText: (CharSequence?) -> Unit
+    private lateinit var setTagText: (CharSequence?) -> Unit
+    private lateinit var setContentText: (CharSequence?) -> Unit
+
     override fun inflateBinding(inflater: LayoutInflater, container: ViewGroup?) = FragmentEditFilterBinding.inflate(inflater, container, false)
 
     override fun FragmentEditFilterBinding.onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -116,14 +125,14 @@ internal class EditFilterFragment :
             send(EditFilterCommand.Save)
         }
 
-        uidText.doAfterTextChanged(this@EditFilterFragment) { send(EditFilterCommand.UpdateUid(it?.toString().orEmpty())) }
-        pidText.doAfterTextChanged(this@EditFilterFragment) { send(EditFilterCommand.UpdatePid(it?.toString().orEmpty())) }
-        tidText.doAfterTextChanged(this@EditFilterFragment) { send(EditFilterCommand.UpdateTid(it?.toString().orEmpty())) }
-        packageNameText.doAfterTextChanged(this@EditFilterFragment) {
+        setUidText = uidText.doAfterTextChanged(this@EditFilterFragment) { send(EditFilterCommand.UpdateUid(it?.toString().orEmpty())) }
+        setPidText = pidText.doAfterTextChanged(this@EditFilterFragment) { send(EditFilterCommand.UpdatePid(it?.toString().orEmpty())) }
+        setTidText = tidText.doAfterTextChanged(this@EditFilterFragment) { send(EditFilterCommand.UpdateTid(it?.toString().orEmpty())) }
+        setPackageNameText = packageNameText.doAfterTextChanged(this@EditFilterFragment) {
             send(EditFilterCommand.UpdatePackageName(it?.toString().orEmpty()))
         }
-        tagText.doAfterTextChanged(this@EditFilterFragment) { send(EditFilterCommand.UpdateTag(it?.toString().orEmpty())) }
-        contentText.doAfterTextChanged(this@EditFilterFragment) {
+        setTagText = tagText.doAfterTextChanged(this@EditFilterFragment) { send(EditFilterCommand.UpdateTag(it?.toString().orEmpty())) }
+        setContentText = contentText.doAfterTextChanged(this@EditFilterFragment) {
             send(EditFilterCommand.UpdateContent(it?.toString().orEmpty()))
         }
     }
@@ -136,12 +145,12 @@ internal class EditFilterFragment :
             updateEnabledButton(state.enabled)
             updateTitle(state.name)
 
-            setTextIfDifferent(uidText, state.uid.orEmpty())
-            setTextIfDifferent(pidText, state.pid.orEmpty())
-            setTextIfDifferent(tidText, state.tid.orEmpty())
-            setTextIfDifferent(packageNameText, state.packageName.orEmpty())
-            setTextIfDifferent(tagText, state.tag.orEmpty())
-            setTextIfDifferent(contentText, state.content.orEmpty())
+            setTextIfDifferent(uidText, state.uid.orEmpty(), setUidText)
+            setTextIfDifferent(pidText, state.pid.orEmpty(), setPidText)
+            setTextIfDifferent(tidText, state.tid.orEmpty(), setTidText)
+            setTextIfDifferent(packageNameText, state.packageName.orEmpty(), setPackageNameText)
+            setTextIfDifferent(tagText, state.tag.orEmpty(), setTagText)
+            setTextIfDifferent(contentText, state.content.orEmpty(), setContentText)
 
             toolbar.menu.findItem(R.id.export_item).isVisible = state.filter != null
         }
@@ -250,9 +259,15 @@ internal class EditFilterFragment :
             .show()
     }
 
-    private fun setTextIfDifferent(textView: android.widget.EditText, text: String) {
+    // Updates the field only when the value actually changed, via the watcher-suppressing setter so a
+    // render doesn't register as a user edit. The guard also avoids needlessly moving the cursor.
+    private fun setTextIfDifferent(
+        textView: android.widget.EditText,
+        text: String,
+        setText: (CharSequence?) -> Unit,
+    ) {
         if (textView.text.toString() != text) {
-            textView.setText(text)
+            setText(text)
         }
     }
 }
