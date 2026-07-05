@@ -10,6 +10,7 @@ import com.f0x1d.logfox.mcp.api.ToolResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
@@ -26,7 +27,7 @@ class ReadLogsTool(
         put("properties", buildJsonObject {
             put("mode", buildJsonObject {
                 put("type", "string")
-                put("enum", listOf("stream", "dump"))
+                put("enum", buildJsonArray { add("stream"); add("dump") })
                 put("description", "stream: continuous SSE, dump: single snapshot")
                 put("default", "stream")
             })

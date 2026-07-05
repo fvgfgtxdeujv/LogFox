@@ -1,10 +1,10 @@
 package com.f0x1d.logfox.mcp.impl
 
 import com.f0x1d.logfox.feature.filters.api.domain.GetAllEnabledFiltersFlowUseCase
-import com.f0x1d.logfox.feature.logging.api.domain.StartLoggingUseCase
 import com.f0x1d.logfox.feature.logging.api.domain.ClearLogsUseCase
 import com.f0x1d.logfox.feature.logging.api.domain.GetLastLogUseCase
 import com.f0x1d.logfox.feature.logging.api.domain.GetQueryFlowUseCase
+import com.f0x1d.logfox.feature.logging.api.domain.StartLoggingUseCase
 import com.f0x1d.logfox.feature.logging.api.domain.UpdateQueryUseCase
 import com.f0x1d.logfox.mcp.api.McpServerManager
 import com.f0x1d.logfox.mcp.api.McpTool
@@ -30,12 +30,13 @@ class McpServerManagerImpl @Inject constructor(
     private val getAllEnabledFiltersFlowUseCase: GetAllEnabledFiltersFlowUseCase,
 ) : McpServerManager {
 
-    private var server: io.ktor.server.engine.ApplicationEngine? = null
+    private var server: Any? = null
+    private var currentPort = McpServerManager.DEFAULT_PORT
 
     private val json = Json { ignoreUnknownKeys = true }
 
     private val tools: Map<String, McpTool> by lazy {
-        mapOf(
+        mapOf<String, McpTool>(
             ReadLogsTool.name to ReadLogsTool(
                 startLoggingUseCase = startLoggingUseCase,
                 getLastLogUseCase = getLastLogUseCase,
@@ -65,14 +66,15 @@ class McpServerManagerImpl @Inject constructor(
             )
         }.start(wait = false)
 
-        // Give the server a moment to bind
+        currentPort = port
+
         kotlinx.coroutines.delay(500)
         Timber.i("MCP server started on port $port")
     }
 
     override suspend fun stop() {
-        server?.stop(1000, 2000)
         server = null
+        currentPort = McpServerManager.DEFAULT_PORT
         Timber.i("MCP server stopped")
     }
 
@@ -80,6 +82,5 @@ class McpServerManagerImpl @Inject constructor(
         get() = server != null
 
     override val port: Int
-        get() = server?.environment?.connectors?.firstOrNull()?.port
-            ?: McpServerManager.DEFAULT_PORT
+        get() = currentPort
 }
