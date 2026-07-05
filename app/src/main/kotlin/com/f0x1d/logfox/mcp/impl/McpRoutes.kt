@@ -43,7 +43,8 @@ import timber.log.Timber
 
 class McpRoutes(private val json: Json) {
 
-    fun Application.mcpRoutes(
+    suspend fun mcpRoutes(
+        application: Application,
         terminal: Terminal,
         startLoggingUseCase: StartLoggingUseCase,
         clearLogsUseCase: ClearLogsUseCase,
@@ -52,11 +53,11 @@ class McpRoutes(private val json: Json) {
         getAllEnabledFiltersFlowUseCase: GetAllEnabledFiltersFlowUseCase,
         tools: Map<String, McpTool>,
     ) {
-        install(ContentNegotiation) {
+        application.install(ContentNegotiation) {
             json(json)
         }
 
-        routing {
+        application.routing {
             get("/logs") {
                 try {
                     val flow = startLoggingUseCase(terminal = terminal)
