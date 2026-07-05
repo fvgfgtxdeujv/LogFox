@@ -11,6 +11,7 @@ import com.f0x1d.logfox.core.context.makeServicePendingIntent
 import com.f0x1d.logfox.core.ui.icons.Icons
 import com.f0x1d.logfox.feature.notifications.api.MCP_SERVER_CHANNEL_ID
 import com.f0x1d.logfox.feature.strings.Strings
+import com.f0x1d.logfox.mcp.api.McpServerManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
