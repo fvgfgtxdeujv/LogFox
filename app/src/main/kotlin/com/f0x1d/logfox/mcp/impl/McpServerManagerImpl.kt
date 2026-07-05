@@ -69,19 +69,19 @@ class McpServerManagerImpl @Inject constructor(
             return
         }
 
+        val terminal = com.f0x1d.logfox.mcp.impl.McpServerDeps.selectedTerminal()
+
         server = embeddedServer(CIO, port = port, host = "0.0.0.0") {
-            launch {
-                com.f0x1d.logfox.mcp.impl.McpRoutes(json).mcpRoutes(
-                    application = this@embeddedServer,
-                    terminal = com.f0x1d.logfox.mcp.impl.McpServerDeps.selectedTerminal(),
-                    startLoggingUseCase = startLoggingUseCase,
-                    clearLogsUseCase = clearLogsUseCase,
-                    getQueryFlowUseCase = getQueryFlowUseCase,
-                    updateQueryUseCase = updateQueryUseCase,
-                    getAllEnabledFiltersFlowUseCase = getAllEnabledFiltersFlowUseCase,
-                    tools = tools,
-                )
-            }
+            com.f0x1d.logfox.mcp.impl.McpRoutes(json).mcpRoutes(
+                application = this,
+                terminal = terminal,
+                startLoggingUseCase = startLoggingUseCase,
+                clearLogsUseCase = clearLogsUseCase,
+                getQueryFlowUseCase = getQueryFlowUseCase,
+                updateQueryUseCase = updateQueryUseCase,
+                getAllEnabledFiltersFlowUseCase = getAllEnabledFiltersFlowUseCase,
+                tools = tools,
+            )
         }.start(wait = false)
 
         currentPort = port

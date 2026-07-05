@@ -43,7 +43,7 @@ import timber.log.Timber
 
 class McpRoutes(private val json: Json) {
 
-    suspend fun mcpRoutes(
+    fun mcpRoutes(
         application: Application,
         terminal: Terminal,
         startLoggingUseCase: StartLoggingUseCase,
