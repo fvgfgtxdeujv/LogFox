@@ -125,3 +125,21 @@ McpServerDeps (单例)
 - MCP 服务需要 Root 设备才能正常工作（日志读取权限）
 - 服务启动时会自动在 8765 端口监听
 - 日志流通过 SSE (Server-Sent Events) 推送
+
+## 已知构建问题
+
+### Windows AIDL 编译编码错误
+
+**现象**: 构建时 `:feature:terminals:presentation:compileDebugAidl` 报错：
+```
+java.nio.charset.MalformedInputException: Input length = 1
+```
+
+**原因**: AGP 9.2 + JDK 21 在 Windows 上编译 AIDL 时，遇到非 ASCII 字符（如俄语、中文 localized strings）会编码错误。这是**项目原有 issue**，与 MCP 功能无关——即使 `git stash` 后原项目也会报同样错误。
+
+**临时绕过方案**:
+1. 在 Windows 上使用 Android Studio 构建（其内置的 AIDL 编译器处理编码更健壮）
+2. 或临时删除 `feature/terminals/impl/src/main/res/values-*` 下的非英文 strings.xml
+3. 或升级 AGP 到修复此问题的版本
+
+**注意**: 此错误不影响 MCP 代码本身——MCP 相关模块（`app`、`mcp/`）的代码逻辑是正确的。
