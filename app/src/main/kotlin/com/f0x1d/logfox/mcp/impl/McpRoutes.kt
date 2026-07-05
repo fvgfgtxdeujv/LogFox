@@ -5,8 +5,8 @@ import com.f0x1d.logfox.feature.logging.api.domain.StartLoggingUseCase
 import com.f0x1d.logfox.feature.logging.api.domain.ClearLogsUseCase
 import com.f0x1d.logfox.feature.logging.api.domain.GetQueryFlowUseCase
 import com.f0x1d.logfox.feature.logging.api.domain.UpdateQueryUseCase
-import com.f0x1d.logfox.mcp.api.McpLogLine
 import com.f0x1d.logfox.mcp.api.McpTool
+import com.f0x1d.logfox.mcp.api.model.McpLogLine
 import com.f0x1d.logfox.mcp.impl.tools.ClearLogsTool
 import com.f0x1d.logfox.mcp.impl.tools.GetFiltersTool
 import com.f0x1d.logfox.mcp.impl.tools.GetQueryTool
@@ -31,9 +31,11 @@ import io.ktor.server.routing.routing
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import timber.log.Timber
