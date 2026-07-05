@@ -40,16 +40,27 @@ class McpServerManagerImpl @Inject constructor(
     }
 
     private fun buildToolsMap(): Map<String, McpTool> {
-        return mapOf(
-            ReadLogsTool.name to ReadLogsTool(
-                startLoggingUseCase = startLoggingUseCase,
-                getLastLogUseCase = getLastLogUseCase,
-            ),
-            SetQueryTool.name to SetQueryTool(updateQueryUseCase),
-            GetQueryTool.name to GetQueryTool(getQueryFlowUseCase),
-            ClearLogsTool.name to ClearLogsTool(clearLogsUseCase),
-            GetFiltersTool.name to GetFiltersTool(getAllEnabledFiltersFlowUseCase),
+        val result = LinkedHashMap<String, McpTool>()
+        val r1 = ReadLogsTool(
+            startLoggingUseCase = startLoggingUseCase,
+            getLastLogUseCase = getLastLogUseCase,
         )
+        @Suppress("UNCHECKED_CAST")
+        result[r1.name as String] = r1 as McpTool
+
+        val r2 = SetQueryTool(updateQueryUseCase)
+        result[r2.name] = r2
+
+        val r3 = GetQueryTool(getQueryFlowUseCase)
+        result[r3.name] = r3
+
+        val r4 = ClearLogsTool(clearLogsUseCase)
+        result[r4.name] = r4
+
+        val r5 = GetFiltersTool(getAllEnabledFiltersFlowUseCase)
+        result[r5.name] = r5
+
+        return result
     }
 
     override suspend fun start(port: Int) {
