@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
@@ -181,7 +182,7 @@ class McpRoutes(private val json: Json) {
                     val body = call.receiveText()
                     val request = json.parseToJsonElement(body).jsonObject
                     val method = request["method"]?.toString()?.trim('"') ?: ""
-                    val id = request["id"]
+                    val id = request["id"] ?: JsonNull
 
                     when (method) {
                         "tools/list" -> {
