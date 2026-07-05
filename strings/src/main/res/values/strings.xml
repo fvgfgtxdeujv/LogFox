@@ -179,4 +179,9 @@
     <string name="monet" translatable="false">Monet</string>
     <string name="share_logs">Share logs</string>
     <string name="case_sensitive">Case sensitive</string>
+    <string name="mcp_server_notification_title">LogFox MCP Server</string>
+    <string name="mcp_server_notification_text">MCP server running on port %d</string>
+    <string name="mcp_server_notification_channel">MCP Server</string>
+    <string name="mcp_server_notification_desc">LogFox MCP server for AI integration</string>
+    <string name="mcp_server_stop">Stop</string>
 </resources>

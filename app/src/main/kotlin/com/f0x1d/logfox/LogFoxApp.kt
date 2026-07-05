@@ -9,6 +9,7 @@ import coil.ImageLoaderFactory
 import com.f0x1d.logfox.core.context.notificationManagerCompat
 import com.f0x1d.logfox.core.logging.TimberFileTree
 import com.f0x1d.logfox.feature.notifications.api.LOGGING_STATUS_CHANNEL_ID
+import com.f0x1d.logfox.feature.notifications.api.MCP_SERVER_CHANNEL_ID
 import com.f0x1d.logfox.feature.notifications.api.RECORDING_STATUS_CHANNEL_ID
 import com.f0x1d.logfox.feature.preferences.api.data.UISettingsRepository
 import com.f0x1d.logfox.feature.strings.Strings
@@ -68,10 +69,21 @@ class LogFoxApp : Application(), ImageLoaderFactory {
                     .setSound(null, null)
                     .build()
 
+            val mcpServerChannel =
+                NotificationChannelCompat
+                    .Builder(
+                        MCP_SERVER_CHANNEL_ID,
+                        NotificationManagerCompat.IMPORTANCE_LOW,
+                    ).setName(getString(Strings.mcp_server_notification_channel))
+                    .setDescription(getString(Strings.mcp_server_notification_desc))
+                    .setShowBadge(false)
+                    .build()
+
             createNotificationChannelsCompat(
                 listOf(
                     loggingStatusChannel,
                     recordingStatusChannel,
+                    mcpServerChannel,
                 ),
             )
         }

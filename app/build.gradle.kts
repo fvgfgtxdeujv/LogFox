@@ -3,6 +3,7 @@ import com.android.build.api.variant.impl.VariantOutputImpl
 plugins {
     alias(libs.plugins.logfox.android.application)
     alias(libs.plugins.logfox.android.hilt)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -77,6 +78,12 @@ dependencies {
 
     implementation(projects.feature.setup.impl)
     implementation(projects.feature.setup.presentation)
+
+    // MCP server
+    implementation(libs.ktor.server.core)
+    implementation(libs.ktor.server.cio)
+    implementation(libs.ktor.serialization.kotlinx.json)
+    implementation(libs.kotlinx.serialization.json)
 
     implementation(libs.timber)
     implementation(libs.gson)

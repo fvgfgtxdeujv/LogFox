@@ -29,6 +29,8 @@ include(":strings")
 includeRecursive(File(rootDir, "core"))
 includeRecursive(File(rootDir, "feature"))
 
+println("After includeRecursive - rootProject.children: ${rootProject.children.map { it.name }}")
+
 private fun includeRecursive(
     directory: File,
     parentDirectoriesNames: List<String> = listOf(directory.name),
