@@ -1,7 +1,7 @@
 package com.f0x1d.logfox.mcp.impl
 
 import com.f0x1d.logfox.feature.filters.api.domain.GetAllEnabledFiltersFlowUseCase
-import com.f0x1d.logfox.feature.logging.api.data.StartLoggingUseCase
+import com.f0x1d.logfox.feature.logging.api.domain.StartLoggingUseCase
 import com.f0x1d.logfox.feature.logging.api.domain.ClearLogsUseCase
 import com.f0x1d.logfox.feature.logging.api.domain.GetLastLogUseCase
 import com.f0x1d.logfox.feature.logging.api.domain.GetQueryFlowUseCase

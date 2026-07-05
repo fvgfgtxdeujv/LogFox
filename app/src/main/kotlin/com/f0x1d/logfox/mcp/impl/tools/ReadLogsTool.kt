@@ -1,6 +1,6 @@
 package com.f0x1d.logfox.mcp.impl.tools
 
-import com.f0x1d.logfox.feature.logging.api.data.StartLoggingUseCase
+import com.f0x1d.logfox.feature.logging.api.domain.StartLoggingUseCase
 import com.f0x1d.logfox.feature.logging.api.domain.GetLastLogUseCase
 import com.f0x1d.logfox.feature.logging.api.model.LogLine
 import com.f0x1d.logfox.feature.terminals.api.base.Terminal
