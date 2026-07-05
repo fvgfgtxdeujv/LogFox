@@ -36,7 +36,11 @@ class McpServerManagerImpl @Inject constructor(
     private val json = Json { ignoreUnknownKeys = true }
 
     private val tools: Map<String, McpTool> by lazy {
-        mapOf<String, McpTool>(
+        buildToolsMap()
+    }
+
+    private fun buildToolsMap(): Map<String, McpTool> {
+        return mapOf(
             ReadLogsTool.name to ReadLogsTool(
                 startLoggingUseCase = startLoggingUseCase,
                 getLastLogUseCase = getLastLogUseCase,
