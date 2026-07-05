@@ -1,6 +1,8 @@
 name: 构建并发布
 
 on:
+  push:
+    branches: [ "master" ]
   workflow_dispatch:
     inputs:
       version_name:
@@ -33,7 +35,7 @@ jobs:
       - name: 设置版本信息
         id: version
         run: |
-          if [ "${{ inputs.create_release }}" = "true" ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.create_release }}" = "true" ]; then
             echo "version_name=${{ inputs.version_name }}" >> $GITHUB_OUTPUT
             echo "version_code=${{ inputs.version_code }}" >> $GITHUB_OUTPUT
           else
@@ -68,7 +70,7 @@ jobs:
     name: 创建 GitHub Release
     runs-on: ubuntu-latest
     needs: build
-    if: ${{ inputs.create_release }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.create_release }}
     permissions:
       contents: write
     steps:
