@@ -83,8 +83,14 @@ class McpServerManagerImpl @Inject constructor(
         Timber.d("$TAG Server start requested on port $port")
 
         if (isRunning) {
-            Timber.w("$TAG Server already running on port $currentPort, ignoring")
-            return
+            Timber.w("$TAG Server already running on port $currentPort, stopping first...")
+            stop()
+        }
+
+        Timber.d("$TAG Checking if port $port is available...")
+        if (!isPortAvailable(port)) {
+            Timber.e("$TAG Port $port is already in use")
+            throw IllegalStateException("Port $port is already in use")
         }
 
         Timber.d("$TAG Getting selected terminal...")
@@ -92,25 +98,43 @@ class McpServerManagerImpl @Inject constructor(
         Timber.i("$TAG Selected terminal: ${terminal.type.key}")
 
         Timber.d("$TAG Creating embedded server on port $port...")
-        server = embeddedServer(CIO, port = port, host = "0.0.0.0") {
-            Timber.d("$TAG Configuring Ktor routes...")
-            com.f0x1d.logfox.mcp.impl.McpRoutes(json).mcpRoutes(
-                application = this,
-                terminal = terminal,
-                startLoggingUseCase = startLoggingUseCase,
-                clearLogsUseCase = clearLogsUseCase,
-                getQueryFlowUseCase = getQueryFlowUseCase,
-                updateQueryUseCase = updateQueryUseCase,
-                getAllEnabledFiltersFlowUseCase = getAllEnabledFiltersFlowUseCase,
-                tools = tools,
-            )
-            Timber.d("$TAG Ktor routes configured")
-        }.start(wait = false)
+        try {
+            server = embeddedServer(CIO, port = port, host = "0.0.0.0") {
+                Timber.d("$TAG Configuring Ktor routes...")
+                com.f0x1d.logfox.mcp.impl.McpRoutes(json).mcpRoutes(
+                    application = this,
+                    terminal = terminal,
+                    startLoggingUseCase = startLoggingUseCase,
+                    clearLogsUseCase = clearLogsUseCase,
+                    getQueryFlowUseCase = getQueryFlowUseCase,
+                    updateQueryUseCase = updateQueryUseCase,
+                    getAllEnabledFiltersFlowUseCase = getAllEnabledFiltersFlowUseCase,
+                    tools = tools,
+                )
+                Timber.d("$TAG Ktor routes configured")
+            }.start(wait = false)
 
-        currentPort = port
+            currentPort = port
 
-        kotlinx.coroutines.delay(500)
-        Timber.i("$TAG Server started successfully on port $port, isRunning=$isRunning")
+            kotlinx.coroutines.delay(500)
+            Timber.i("$TAG Server started successfully on port $port, isRunning=$isRunning")
+        } catch (e: Exception) {
+            Timber.e(e, "$TAG Failed to start server on port $port")
+            server = null
+            throw e
+        }
+    }
+
+    private fun isPortAvailable(port: Int): Boolean {
+        return try {
+            val socket = java.net.ServerSocket(port)
+            socket.close()
+            true
+        } catch (e: java.net.BindException) {
+            false
+        } catch (e: Exception) {
+            false
+        }
     }
 
     override suspend fun stop() {
@@ -122,9 +146,10 @@ class McpServerManagerImpl @Inject constructor(
         }
 
         Timber.d("$TAG Stopping embedded server...")
-        (server as? io.ktor.server.engine.ApplicationEngine)?.stop()
+        (server as? io.ktor.server.engine.ApplicationEngine)?.stop(gracePeriod = 500, timeout = 2000)
         server = null
         currentPort = McpServerManager.DEFAULT_PORT
+        kotlinx.coroutines.delay(1000)
         Timber.i("$TAG Server stopped successfully")
     }
 
