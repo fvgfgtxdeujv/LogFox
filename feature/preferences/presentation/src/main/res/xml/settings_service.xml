@@ -81,4 +81,40 @@
             app:widgetLayout="@layout/preference_material_switch"
             app:iconSpaceReserved="false" />
     </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="@string/mcp_server"
+        app:iconSpaceReserved="false"
+        app:allowDividerAbove="false">
+
+        <Preference
+            android:title="@string/mcp_server_status"
+            android:key="pref_mcp_server_status"
+            android:selectable="false"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            android:title="@string/mcp_server_enabled"
+            android:key="pref_mcp_server_enabled"
+            android:defaultValue="false"
+            app:singleLineTitle="false"
+            app:widgetLayout="@layout/preference_material_switch"
+            app:iconSpaceReserved="false" />
+
+        <Preference
+            android:title="@string/mcp_server_port"
+            android:summary="@string/mcp_server_port_desc"
+            android:key="pref_mcp_server_port"
+            app:iconSpaceReserved="false" />
+
+        <Preference
+            android:title="@string/mcp_server_start"
+            android:key="pref_mcp_server_start"
+            app:iconSpaceReserved="false" />
+
+        <Preference
+            android:title="@string/mcp_server_stop_desc"
+            android:key="pref_mcp_server_stop"
+            app:iconSpaceReserved="false" />
+    </PreferenceCategory>
 </PreferenceScreen>

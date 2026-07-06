@@ -1,7 +1,9 @@
 package com.f0x1d.logfox.feature.preferences.presentation.service.ui
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import android.widget.EditText
 import androidx.fragment.app.viewModels
 import androidx.preference.Preference
 import androidx.preference.SwitchPreferenceCompat
@@ -19,6 +21,7 @@ import com.f0x1d.logfox.feature.preferences.presentation.service.PreferencesServ
 import com.f0x1d.logfox.feature.preferences.presentation.service.PreferencesServiceViewState
 import com.f0x1d.logfox.feature.strings.Strings
 import com.f0x1d.logfox.feature.terminals.api.base.TerminalType
+import com.f0x1d.logfox.mcp.impl.McpServerService
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
@@ -52,6 +55,60 @@ internal class PreferencesServiceFragment :
                 true
             }
         }
+
+        findPreference<Preference>("pref_mcp_server_start")?.setOnPreferenceClickListener {
+            startMcpServer()
+            true
+        }
+
+        findPreference<Preference>("pref_mcp_server_stop")?.setOnPreferenceClickListener {
+            stopMcpServer()
+            true
+        }
+
+        findPreference<Preference>("pref_mcp_server_port")?.setOnPreferenceClickListener {
+            showPortDialog()
+            true
+        }
+
+        findPreference<SwitchPreferenceCompat>("pref_mcp_server_enabled")?.apply {
+            setOnPreferenceChangeListener { _, newValue ->
+                if (newValue as Boolean) {
+                    startMcpServer()
+                } else {
+                    stopMcpServer()
+                }
+                true
+            }
+        }
+    }
+
+    private fun startMcpServer() {
+        requireContext().toast(Strings.mcp_server_start)
+        val intent = Intent(requireContext(), McpServerService::class.java)
+        requireContext().startForegroundService(intent)
+    }
+
+    private fun stopMcpServer() {
+        requireContext().toast(Strings.mcp_server_stop_desc)
+        val intent = Intent(requireContext(), McpServerService::class.java)
+        intent.action = McpServerService.ACTION_STOP_SERVER
+        requireContext().startForegroundService(intent)
+    }
+
+    private fun showPortDialog() {
+        val editText = EditText(requireContext())
+        editText.setText(McpServerService.DEFAULT_PORT.toString())
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(Strings.mcp_server_port)
+            .setView(editText)
+            .setPositiveButton(Strings.save) { _, _ ->
+                val port = editText.text.toString().toIntOrNull() ?: McpServerService.DEFAULT_PORT
+                requireContext().toast("${Strings.mcp_server_port}: $port")
+            }
+            .setNegativeButton(Strings.close, null)
+            .show()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {

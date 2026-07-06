@@ -184,4 +184,13 @@
     <string name="mcp_server_notification_channel">MCP Server</string>
     <string name="mcp_server_notification_desc">LogFox MCP server for AI integration</string>
     <string name="mcp_server_stop">Stop</string>
+    <string name="mcp_server">MCP Server</string>
+    <string name="mcp_server_enabled">Enable MCP server</string>
+    <string name="mcp_server_port">Server port</string>
+    <string name="mcp_server_port_desc">Default: 8765</string>
+    <string name="mcp_server_start">Start MCP Server</string>
+    <string name="mcp_server_stop_desc">Stop MCP Server</string>
+    <string name="mcp_server_status">Server status</string>
+    <string name="mcp_server_status_running">Running on port %d</string>
+    <string name="mcp_server_status_stopped">Stopped</string>
 </resources>

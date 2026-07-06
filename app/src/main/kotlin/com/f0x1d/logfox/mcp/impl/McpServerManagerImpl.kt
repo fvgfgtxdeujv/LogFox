@@ -21,6 +21,8 @@ import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
+private const val TAG = "[MCP]"
+
 @Singleton
 class McpServerManagerImpl @Inject constructor(
     private val startLoggingUseCase: StartLoggingUseCase,
@@ -38,7 +40,7 @@ class McpServerManagerImpl @Inject constructor(
     private val json = Json { ignoreUnknownKeys = true }
 
     init {
-        Timber.d("McpServerManagerImpl initialized with ${startLoggingUseCase.javaClass.simpleName}")
+        Timber.d("$TAG McpServerManagerImpl initialized")
     }
 
     private val tools: Map<String, McpTool> by lazy {
@@ -46,7 +48,7 @@ class McpServerManagerImpl @Inject constructor(
     }
 
     private fun buildToolsMap(): Map<String, McpTool> {
-        Timber.d("Building tools map...")
+        Timber.d("$TAG Building tools map...")
         val result = LinkedHashMap<String, McpTool>()
 
         val r1 = ReadLogsTool(
@@ -55,43 +57,43 @@ class McpServerManagerImpl @Inject constructor(
             getSelectedTerminalUseCase = getSelectedTerminalUseCase,
         )
         result[r1.name] = r1
-        Timber.d("Added tool: ${r1.name}")
+        Timber.d("$TAG Added tool: ${r1.name}")
 
         val r2 = SetQueryTool(updateQueryUseCase)
         result[r2.name] = r2
-        Timber.d("Added tool: ${r2.name}")
+        Timber.d("$TAG Added tool: ${r2.name}")
 
         val r3 = GetQueryTool(getQueryFlowUseCase)
         result[r3.name] = r3
-        Timber.d("Added tool: ${r3.name}")
+        Timber.d("$TAG Added tool: ${r3.name}")
 
         val r4 = ClearLogsTool(clearLogsUseCase)
         result[r4.name] = r4
-        Timber.d("Added tool: ${r4.name}")
+        Timber.d("$TAG Added tool: ${r4.name}")
 
         val r5 = GetFiltersTool(getAllEnabledFiltersFlowUseCase)
         result[r5.name] = r5
-        Timber.d("Added tool: ${r5.name}")
+        Timber.d("$TAG Added tool: ${r5.name}")
 
-        Timber.i("Tools map built, total ${result.size} tools")
+        Timber.i("$TAG Tools map built, total ${result.size} tools")
         return result
     }
 
     override suspend fun start(port: Int) {
-        Timber.d("MCP server start requested on port $port")
+        Timber.d("$TAG Server start requested on port $port")
 
         if (isRunning) {
-            Timber.w("MCP server already running on port $currentPort, ignoring start request")
+            Timber.w("$TAG Server already running on port $currentPort, ignoring")
             return
         }
 
-        Timber.d("Getting selected terminal...")
+        Timber.d("$TAG Getting selected terminal...")
         val terminal = getSelectedTerminalUseCase()
-        Timber.i("Selected terminal: ${terminal.name}")
+        Timber.i("$TAG Selected terminal: ${terminal.name}")
 
-        Timber.d("Creating embedded server on port $port...")
+        Timber.d("$TAG Creating embedded server on port $port...")
         server = embeddedServer(CIO, port = port, host = "0.0.0.0") {
-            Timber.d("Configuring Ktor routes...")
+            Timber.d("$TAG Configuring Ktor routes...")
             com.f0x1d.logfox.mcp.impl.McpRoutes(json).mcpRoutes(
                 application = this,
                 terminal = terminal,
@@ -102,28 +104,28 @@ class McpServerManagerImpl @Inject constructor(
                 getAllEnabledFiltersFlowUseCase = getAllEnabledFiltersFlowUseCase,
                 tools = tools,
             )
-            Timber.d("Ktor routes configured")
+            Timber.d("$TAG Ktor routes configured")
         }.start(wait = false)
 
         currentPort = port
 
         kotlinx.coroutines.delay(500)
-        Timber.i("MCP server started successfully on port $port, isRunning=$isRunning")
+        Timber.i("$TAG Server started successfully on port $port, isRunning=$isRunning")
     }
 
     override suspend fun stop() {
-        Timber.d("MCP server stop requested")
+        Timber.d("$TAG Server stop requested")
 
         if (!isRunning) {
-            Timber.w("MCP server not running, ignoring stop request")
+            Timber.w("$TAG Server not running, ignoring")
             return
         }
 
-        Timber.d("Stopping embedded server...")
+        Timber.d("$TAG Stopping embedded server...")
         (server as? io.ktor.server.engine.ApplicationEngine)?.stop()
         server = null
         currentPort = McpServerManager.DEFAULT_PORT
-        Timber.i("MCP server stopped successfully")
+        Timber.i("$TAG Server stopped successfully")
     }
 
     override val isRunning: Boolean
