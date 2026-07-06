@@ -22,3 +22,8 @@
 
 -keep,allowobfuscation,allowshrinking class com.google.gson.reflect.TypeToken
 -keep,allowobfuscation,allowshrinking class * extends com.google.gson.reflect.TypeToken
+
+# Ktor R8 混淆规则
+-dontwarn java.lang.management.ManagementFactory
+-dontwarn io.ktor.util.debug.IntellijIdeaDebugDetector
+-keep class io.ktor.util.debug.IntellijIdeaDebugDetector { *; }
