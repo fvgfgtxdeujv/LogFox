@@ -37,43 +37,61 @@ class McpServerManagerImpl @Inject constructor(
 
     private val json = Json { ignoreUnknownKeys = true }
 
+    init {
+        Timber.d("McpServerManagerImpl initialized with ${startLoggingUseCase.javaClass.simpleName}")
+    }
+
     private val tools: Map<String, McpTool> by lazy {
         buildToolsMap()
     }
 
     private fun buildToolsMap(): Map<String, McpTool> {
+        Timber.d("Building tools map...")
         val result = LinkedHashMap<String, McpTool>()
+
         val r1 = ReadLogsTool(
             startLoggingUseCase = startLoggingUseCase,
             getLastLogUseCase = getLastLogUseCase,
             getSelectedTerminalUseCase = getSelectedTerminalUseCase,
         )
         result[r1.name] = r1
+        Timber.d("Added tool: ${r1.name}")
 
         val r2 = SetQueryTool(updateQueryUseCase)
         result[r2.name] = r2
+        Timber.d("Added tool: ${r2.name}")
 
         val r3 = GetQueryTool(getQueryFlowUseCase)
         result[r3.name] = r3
+        Timber.d("Added tool: ${r3.name}")
 
         val r4 = ClearLogsTool(clearLogsUseCase)
         result[r4.name] = r4
+        Timber.d("Added tool: ${r4.name}")
 
         val r5 = GetFiltersTool(getAllEnabledFiltersFlowUseCase)
         result[r5.name] = r5
+        Timber.d("Added tool: ${r5.name}")
 
+        Timber.i("Tools map built, total ${result.size} tools")
         return result
     }
 
     override suspend fun start(port: Int) {
+        Timber.d("MCP server start requested on port $port")
+
         if (isRunning) {
-            Timber.w("MCP server already running on port $port")
+            Timber.w("MCP server already running on port $currentPort, ignoring start request")
             return
         }
 
+        Timber.d("Getting selected terminal...")
         val terminal = getSelectedTerminalUseCase()
+        Timber.i("Selected terminal: ${terminal.name}")
 
+        Timber.d("Creating embedded server on port $port...")
         server = embeddedServer(CIO, port = port, host = "0.0.0.0") {
+            Timber.d("Configuring Ktor routes...")
             com.f0x1d.logfox.mcp.impl.McpRoutes(json).mcpRoutes(
                 application = this,
                 terminal = terminal,
@@ -84,19 +102,28 @@ class McpServerManagerImpl @Inject constructor(
                 getAllEnabledFiltersFlowUseCase = getAllEnabledFiltersFlowUseCase,
                 tools = tools,
             )
+            Timber.d("Ktor routes configured")
         }.start(wait = false)
 
         currentPort = port
 
         kotlinx.coroutines.delay(500)
-        Timber.i("MCP server started on port $port")
+        Timber.i("MCP server started successfully on port $port, isRunning=$isRunning")
     }
 
     override suspend fun stop() {
+        Timber.d("MCP server stop requested")
+
+        if (!isRunning) {
+            Timber.w("MCP server not running, ignoring stop request")
+            return
+        }
+
+        Timber.d("Stopping embedded server...")
         (server as? io.ktor.server.engine.ApplicationEngine)?.stop()
         server = null
         currentPort = McpServerManager.DEFAULT_PORT
-        Timber.i("MCP server stopped")
+        Timber.i("MCP server stopped successfully")
     }
 
     override val isRunning: Boolean

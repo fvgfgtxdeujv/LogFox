@@ -53,14 +53,20 @@ class McpRoutes(private val json: Json) {
         getAllEnabledFiltersFlowUseCase: GetAllEnabledFiltersFlowUseCase,
         tools: Map<String, McpTool>,
     ) {
+        Timber.i("Configuring MCP routes, terminal=${terminal.name}, tools=${tools.keys.joinToString()}")
+
         application.install(ContentNegotiation) {
             json(json)
+            Timber.d("Installed ContentNegotiation plugin")
         }
 
         application.routing {
             get("/logs") {
+                Timber.i("Received GET /logs request")
                 try {
+                    Timber.d("Starting logging with terminal: ${terminal.name}")
                     val flow = startLoggingUseCase(terminal = terminal)
+                    Timber.d("Got log flow, streaming...")
                     call.response.headers.append(HttpHeaders.CacheControl, "no-cache")
                     call.respondTextWriter(contentType = ContentType.Text.EventStream) {
                         flow.collect { logLine ->
@@ -70,6 +76,7 @@ class McpRoutes(private val json: Json) {
                             flush()
                         }
                     }
+                    Timber.d("/logs stream completed")
                 } catch (e: Exception) {
                     Timber.e(e, "MCP /logs error")
                     call.respond(mapOf("error" to (e.message ?: "Unknown error")))
@@ -77,40 +84,51 @@ class McpRoutes(private val json: Json) {
             }
 
             post("/logs/clear") {
+                Timber.i("Received POST /logs/clear request")
                 try {
                     clearLogsUseCase()
+                    Timber.d("Logs cleared successfully")
                     call.respond(mapOf("result" to "cleared"))
                 } catch (e: Exception) {
+                    Timber.e(e, "MCP /logs/clear error")
                     call.respond(mapOf("error" to (e.message ?: "Unknown error")))
                 }
             }
 
             get("/query") {
+                Timber.i("Received GET /query request")
                 try {
                     val query = getQueryFlowUseCase().first().orEmpty()
+                    Timber.d("Current query: '$query'")
                     call.respond(mapOf("query" to query))
                 } catch (e: Exception) {
+                    Timber.e(e, "MCP /query error")
                     call.respond(mapOf("error" to (e.message ?: "Unknown error")))
                 }
             }
 
             post("/query") {
+                Timber.i("Received POST /query request")
                 try {
                     val body = call.receiveText()
                     val jsonElement = json.parseToJsonElement(body)
                     val query = (jsonElement as? JsonObject)?.get("query")?.let { el ->
                         (el as? kotlinx.serialization.json.JsonPrimitive)?.content ?: ""
                     } ?: ""
+                    Timber.d("Setting query to: '$query'")
                     updateQueryUseCase(query)
                     call.respond(mapOf("result" to "ok", "query" to query))
                 } catch (e: Exception) {
+                    Timber.e(e, "MCP POST /query error")
                     call.respond(mapOf("error" to (e.message ?: "Unknown error")))
                 }
             }
 
             get("/filters") {
+                Timber.i("Received GET /filters request")
                 try {
                     val filters = getAllEnabledFiltersFlowUseCase().first()
+                    Timber.d("Found ${filters.size} enabled filters")
                     val filterObjects = filters.map { filter ->
                         buildJsonObject {
                             put("id", filter.id)
@@ -122,11 +140,13 @@ class McpRoutes(private val json: Json) {
                     }
                     call.respond(mapOf("filters" to filterObjects, "count" to filters.size))
                 } catch (e: Exception) {
+                    Timber.e(e, "MCP /filters error")
                     call.respond(mapOf("error" to (e.message ?: "Unknown error")))
                 }
             }
 
             get("/tools") {
+                Timber.i("Received GET /tools request, returning ${tools.size} tools")
                 val toolList = tools.values.map { tool ->
                     buildJsonObject {
                         put("name", tool.name)
@@ -139,25 +159,35 @@ class McpRoutes(private val json: Json) {
 
             post("/tools/{name}/call") {
                 val toolName = call.parameters["name"] ?: run {
+                    Timber.w("POST /tools/call without tool name")
                     call.respond(mapOf("error" to "Missing tool name"))
                     return@post
                 }
+                Timber.i("Received POST /tools/$toolName/call request")
                 val tool = tools[toolName]
                 if (tool == null) {
+                    Timber.w("Unknown tool: $toolName")
                     call.respond(mapOf("error" to "Unknown tool: $toolName"))
                     return@post
                 }
 
-                val params: JsonObject = try { call.receive() } catch (e: Exception) { JsonObject(emptyMap()) }
+                val params: JsonObject = try { call.receive() } catch (e: Exception) {
+                    Timber.w("Failed to parse params, using empty: ${e.message}")
+                    JsonObject(emptyMap())
+                }
 
+                Timber.d("Calling tool $toolName with params: $params")
                 when (val result = tool.call(params)) {
                     is com.f0x1d.logfox.mcp.api.ToolResult.Value -> {
+                        Timber.d("Tool $toolName returned Value result")
                         call.respond(mapOf("content" to result.content))
                     }
                     is com.f0x1d.logfox.mcp.api.ToolResult.Error -> {
+                        Timber.e("Tool $toolName returned Error: ${result.message}")
                         call.respond(mapOf("error" to result.message))
                     }
                     is com.f0x1d.logfox.mcp.api.ToolResult.Stream -> {
+                        Timber.d("Tool $toolName returned Stream result")
                         call.response.headers.append(HttpHeaders.CacheControl, "no-cache")
                         call.respondTextWriter(contentType = ContentType.Text.EventStream) {
                             result.flow.collect { block ->
@@ -184,9 +214,11 @@ class McpRoutes(private val json: Json) {
                     val request = json.parseToJsonElement(body).jsonObject
                     val method = request["method"]?.toString()?.trim('"') ?: ""
                     val id = request["id"] ?: JsonNull
+                    Timber.i("Received MCP JSON-RPC request: method=$method, id=$id")
 
                     when (method) {
                         "tools/list" -> {
+                            Timber.d("Processing tools/list")
                             val toolList = tools.values.map { tool ->
                                 buildJsonObject {
                                     put("name", tool.name)
@@ -212,8 +244,10 @@ class McpRoutes(private val json: Json) {
                         "tools/call" -> {
                             val params = request["params"]?.jsonObject ?: JsonObject(emptyMap())
                             val toolName = params["name"]?.toString()?.trim('"') ?: ""
+                            Timber.d("Processing tools/call: $toolName")
                             val tool = tools[toolName]
                             if (tool == null) {
+                                Timber.w("Tool not found: $toolName")
                                 call.respond(
                                     TextContent(
                                         json.encodeToString(
@@ -235,6 +269,7 @@ class McpRoutes(private val json: Json) {
                             val arguments = params["arguments"]?.jsonObject ?: JsonObject(emptyMap())
                             when (val result = tool.call(arguments)) {
                                 is com.f0x1d.logfox.mcp.api.ToolResult.Value -> {
+                                    Timber.d("tools/call returned Value")
                                     call.respond(
                                         TextContent(
                                             json.encodeToString(
@@ -261,6 +296,7 @@ class McpRoutes(private val json: Json) {
                                     )
                                 }
                                 is com.f0x1d.logfox.mcp.api.ToolResult.Error -> {
+                                    Timber.e("tools/call returned Error: ${result.message}")
                                     call.respond(
                                         TextContent(
                                             json.encodeToString(
@@ -278,6 +314,7 @@ class McpRoutes(private val json: Json) {
                                     )
                                 }
                                 is com.f0x1d.logfox.mcp.api.ToolResult.Stream -> {
+                                    Timber.d("tools/call returned Stream")
                                     call.response.headers.append(HttpHeaders.CacheControl, "no-cache")
                                     call.respondTextWriter(contentType = ContentType.Text.EventStream) {
                                         result.flow.collect { block ->
@@ -294,6 +331,7 @@ class McpRoutes(private val json: Json) {
                             }
                         }
                         else -> {
+                            Timber.w("Unknown MCP method: $method")
                             call.respond(
                                 TextContent(
                                     json.encodeToString(
@@ -318,9 +356,12 @@ class McpRoutes(private val json: Json) {
             }
 
             get("/health") {
+                Timber.i("Received GET /health request")
                 call.respond(mapOf("status" to "ok"))
             }
         }
+
+        Timber.i("MCP routes configured successfully")
     }
 
     private fun buildQueryFromFilter(

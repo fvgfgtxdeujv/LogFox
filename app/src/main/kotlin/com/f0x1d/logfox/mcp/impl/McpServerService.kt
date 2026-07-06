@@ -14,6 +14,7 @@ import com.f0x1d.logfox.feature.strings.Strings
 import com.f0x1d.logfox.mcp.api.McpServerManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -29,19 +30,33 @@ class McpServerService : LifecycleService() {
 
     override fun onCreate() {
         super.onCreate()
+        Timber.i("McpServerService onCreate() called")
 
         startForeground(1, notification())
+        Timber.d("Started foreground service with notification")
 
         lifecycleScope.launch {
-            mcpServerManager.start(McpServerService.DEFAULT_PORT)
+            Timber.d("Launching coroutine to start MCP server...")
+            try {
+                mcpServerManager.start(McpServerService.DEFAULT_PORT)
+                Timber.i("MCP server start completed, isRunning=${mcpServerManager.isRunning}, port=${mcpServerManager.port}")
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to start MCP server")
+            }
         }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
+        Timber.d("McpServerService onStartCommand() called, action=${intent?.action}, startId=$startId")
 
         when (intent?.action) {
-            ACTION_STOP_SERVER -> stopSelf()
+            ACTION_STOP_SERVER -> {
+                Timber.i("Received stop server action, calling stopSelf()")
+                stopSelf()
+            }
+            null -> Timber.d("onStartCommand with null intent")
+            else -> Timber.d("onStartCommand with unknown action: ${intent.action}")
         }
 
         return START_NOT_STICKY
@@ -49,6 +64,7 @@ class McpServerService : LifecycleService() {
 
     private fun notification(): Notification {
         val port = McpServerService.DEFAULT_PORT
+        Timber.d("Building notification for port $port")
         return NotificationCompat.Builder(this, MCP_SERVER_CHANNEL_ID)
             .setContentTitle(getString(Strings.mcp_server_notification_title))
             .setContentText(getString(Strings.mcp_server_notification_text, port))
@@ -69,13 +85,22 @@ class McpServerService : LifecycleService() {
     }
 
     override fun onDestroy() {
+        Timber.i("McpServerService onDestroy() called")
         super.onDestroy()
+
         lifecycleScope.launch {
-            mcpServerManager.stop()
+            Timber.d("Launching coroutine to stop MCP server...")
+            try {
+                mcpServerManager.stop()
+                Timber.i("MCP server stop completed")
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to stop MCP server")
+            }
         }
     }
 
     override fun onBind(intent: Intent): IBinder? {
+        Timber.d("McpServerService onBind() called")
         return null
     }
 }
