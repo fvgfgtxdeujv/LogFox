@@ -57,7 +57,7 @@ class McpRoutes(private val json: Json) {
         getAllEnabledFiltersFlowUseCase: GetAllEnabledFiltersFlowUseCase,
         tools: Map<String, McpTool>,
     ) {
-        Timber.i("$TAG Configuring routes, terminal=${terminal.name}, tools=${tools.keys.joinToString()}")
+        Timber.i("$TAG Configuring routes, terminal=${terminal.type.key}, tools=${tools.keys.joinToString()}")
 
         application.install(ContentNegotiation) {
             json(json)
@@ -68,7 +68,7 @@ class McpRoutes(private val json: Json) {
             get("/logs") {
                 Timber.i("$TAG Received GET /logs request")
                 try {
-                    Timber.d("$TAG Starting logging with terminal: ${terminal.name}")
+                    Timber.d("$TAG Starting logging with terminal: ${terminal.type.key}")
                     val flow = startLoggingUseCase(terminal = terminal)
                     Timber.d("$TAG Got log flow, streaming...")
                     call.response.headers.append(HttpHeaders.CacheControl, "no-cache")

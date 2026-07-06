@@ -89,7 +89,7 @@ class McpServerManagerImpl @Inject constructor(
 
         Timber.d("$TAG Getting selected terminal...")
         val terminal = getSelectedTerminalUseCase()
-        Timber.i("$TAG Selected terminal: ${terminal.name}")
+        Timber.i("$TAG Selected terminal: ${terminal.type.key}")
 
         Timber.d("$TAG Creating embedded server on port $port...")
         server = embeddedServer(CIO, port = port, host = "0.0.0.0") {
