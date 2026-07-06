@@ -32,8 +32,8 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                         create(releaseSigningConfigName) {
                             storeFile = keyStoreFile
                             storePassword = keyStorePassword
-                            keyAlias = keyAlias
-                            keyPassword = keyPassword
+                            this.keyAlias = keyAlias
+                            this.keyPassword = keyPassword
                         }
                     }
                 }
