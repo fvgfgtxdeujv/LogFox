@@ -53,12 +53,6 @@ jobs:
       - name: 授予 gradlew 执行权限
         run: chmod +x gradlew
 
-      - name: 设置 Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          packages: platforms;android-35,build-tools;34.0.0
-          accept-android-sdk-licenses: true
-
       - name: 构建 Release APK
         env:
           VERSION_NAME: ${{ steps.version.outputs.version_name }}
