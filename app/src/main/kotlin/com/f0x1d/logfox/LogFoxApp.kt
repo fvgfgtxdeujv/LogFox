@@ -13,6 +13,7 @@ import com.f0x1d.logfox.feature.notifications.api.MCP_SERVER_CHANNEL_ID
 import com.f0x1d.logfox.feature.notifications.api.RECORDING_STATUS_CHANNEL_ID
 import com.f0x1d.logfox.feature.preferences.api.data.UISettingsRepository
 import com.f0x1d.logfox.feature.strings.Strings
+import com.f0x1d.logfox.mcp.impl.McpServerDeps
 import com.google.android.material.color.DynamicColors
 import com.google.android.material.color.DynamicColorsOptions
 import dagger.hilt.android.HiltAndroidApp
@@ -30,6 +31,9 @@ class LogFoxApp : Application(), ImageLoaderFactory {
 
     @Inject
     lateinit var timberFileTree: TimberFileTree
+
+    @Inject
+    lateinit var mcpServerDeps: McpServerDeps
 
     override fun onCreate() {
         super.onCreate()

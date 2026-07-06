@@ -6,6 +6,7 @@ import com.f0x1d.logfox.feature.logging.api.domain.GetLastLogUseCase
 import com.f0x1d.logfox.feature.logging.api.domain.GetQueryFlowUseCase
 import com.f0x1d.logfox.feature.logging.api.domain.StartLoggingUseCase
 import com.f0x1d.logfox.feature.logging.api.domain.UpdateQueryUseCase
+import com.f0x1d.logfox.feature.terminals.api.domain.GetSelectedTerminalUseCase
 import com.f0x1d.logfox.mcp.api.McpServerManager
 import com.f0x1d.logfox.mcp.api.McpTool
 import com.f0x1d.logfox.mcp.impl.tools.ClearLogsTool
@@ -28,6 +29,7 @@ class McpServerManagerImpl @Inject constructor(
     private val getQueryFlowUseCase: GetQueryFlowUseCase,
     private val updateQueryUseCase: UpdateQueryUseCase,
     private val getAllEnabledFiltersFlowUseCase: GetAllEnabledFiltersFlowUseCase,
+    private val getSelectedTerminalUseCase: GetSelectedTerminalUseCase,
 ) : McpServerManager {
 
     private var server: Any? = null
@@ -68,7 +70,7 @@ class McpServerManagerImpl @Inject constructor(
             return
         }
 
-        val terminal = com.f0x1d.logfox.mcp.impl.McpServerDeps.selectedTerminal()
+        val terminal = getSelectedTerminalUseCase()
 
         server = embeddedServer(CIO, port = port, host = "0.0.0.0") {
             com.f0x1d.logfox.mcp.impl.McpRoutes(json).mcpRoutes(

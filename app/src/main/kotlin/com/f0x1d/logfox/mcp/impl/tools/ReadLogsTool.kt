@@ -4,6 +4,7 @@ import com.f0x1d.logfox.feature.logging.api.domain.StartLoggingUseCase
 import com.f0x1d.logfox.feature.logging.api.domain.GetLastLogUseCase
 import com.f0x1d.logfox.feature.logging.api.model.LogLine
 import com.f0x1d.logfox.feature.terminals.api.base.Terminal
+import com.f0x1d.logfox.feature.terminals.api.domain.GetSelectedTerminalUseCase
 import com.f0x1d.logfox.mcp.api.ContentBlock
 import com.f0x1d.logfox.mcp.api.McpTool
 import com.f0x1d.logfox.mcp.api.ToolResult
@@ -18,6 +19,7 @@ import kotlinx.serialization.json.put
 class ReadLogsTool(
     private val startLoggingUseCase: StartLoggingUseCase,
     private val getLastLogUseCase: GetLastLogUseCase,
+    private val getSelectedTerminalUseCase: GetSelectedTerminalUseCase,
 ) : McpTool {
 
     override val name = "read_logs"
@@ -60,7 +62,7 @@ class ReadLogsTool(
                 }
             }
             else -> {
-                val terminal = com.f0x1d.logfox.mcp.impl.McpServerDeps.selectedTerminal()
+                val terminal = getSelectedTerminalUseCase()
                 val logFlow: Flow<LogLine> = startLoggingUseCase(terminal = terminal)
                 ToolResult.Stream(
                     flow = flow {
