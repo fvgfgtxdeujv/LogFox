@@ -80,7 +80,7 @@ jobs:
           name: LogFox-${{ inputs.version_name }}
           path: ./apk
 
-      - name: 创建 Release
+      - name: 直接上传 APK 到 Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ inputs.version_name }}
