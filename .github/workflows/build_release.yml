@@ -53,6 +53,10 @@ jobs:
       - name: 授予 gradlew 执行权限
         run: chmod +x gradlew
 
+      - name: 安装 Android SDK 组件
+        run: |
+          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-36" "build-tools;36.1.0" --sdk_root=$ANDROID_HOME
+
       - name: 构建 Release APK
         env:
           VERSION_NAME: ${{ steps.version.outputs.version_name }}
