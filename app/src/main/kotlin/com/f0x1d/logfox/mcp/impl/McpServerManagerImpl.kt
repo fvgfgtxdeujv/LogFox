@@ -45,8 +45,7 @@ class McpServerManagerImpl @Inject constructor(
             startLoggingUseCase = startLoggingUseCase,
             getLastLogUseCase = getLastLogUseCase,
         )
-        @Suppress("UNCHECKED_CAST")
-        result[r1.name as String] = r1 as McpTool
+        result[r1.name] = r1
 
         val r2 = SetQueryTool(updateQueryUseCase)
         result[r2.name] = r2
@@ -91,6 +90,7 @@ class McpServerManagerImpl @Inject constructor(
     }
 
     override suspend fun stop() {
+        (server as? io.ktor.server.engine.ApplicationEngine)?.stop()
         server = null
         currentPort = McpServerManager.DEFAULT_PORT
         Timber.i("MCP server stopped")

@@ -2,7 +2,16 @@
 
 ## 项目概述
 
-LogFox 是一个 Android LogCat 阅读器，支持 Shizuku、Root 和 ADB 三种日志访问方式。本文档覆盖项目结构、MCP Server 功能开发全过程、构建方法及踩坑记录。
+LogFox 是一个 Android LogCat 阅读器，支持 Shizuku、Root 和 ADB 三种日志访问方式。本文档覆盖项目结构、架构设计、MCP Server 功能开发全过程、构建方法及踩坑记录。
+
+## 环境变量
+
+本机 `~/.claude/.env` 文件中已配置 `LogFox-Cli` token，有 `repo`、`workflow`、`actions` 权限。
+
+```powershell
+# 读取 token
+$env:LOGFOX_TOKEN = (Get-Content "$HOME\.claude\.env" | Select-String "LogFox-Cli").ToString().Split('=')[1]
+```
 
 ## 构建命令
 
@@ -10,8 +19,8 @@ LogFox 是一个 Android LogCat 阅读器，支持 Shizuku、Root 和 ADB 三种
 
 ```powershell
 ./gradlew :app:assembleDebug --quiet          # 构建 Debug APK
-./gradlew testDebugUnitTest --quiet      # 运行单元测试
-./gradlew verifyRoborazziDebug --quiet   # 运行快照测试（CI 使用此命令）
+./gradlew testDebugUnitTest --quiet            # 运行单元测试
+./gradlew verifyRoborazziDebug --quiet         # 运行快照测试（CI 使用此命令）
 ```
 
 ## 架构说明
@@ -176,13 +185,196 @@ McpServerDeps (单例)
     └── 供 McpRoutes 在路由回调中使用
 ```
 
-### 修改记录
+### MCP 功能修改记录
 
 - `app/build.gradle.kts`: 添加 Ktor 和 kotlinx-serialization 依赖
 - `app/src/main/AndroidManifest.xml`: 注册 McpServerService
 - `feature/notifications/api/.../NotificationChannelIds.kt`: 添加 MCP 通知渠道 ID
 - `strings/src/main/res/values/strings.xml`: 添加 MCP 通知相关字符串
 - `app/src/main/kotlin/.../LogFoxApp.kt`: 创建 MCP 通知渠道
+
+## GitHub 自动化操作
+
+### 1. 提交并推送代码
+
+```powershell
+Set-Location "C:\Users\q\Desktop\工具\LogFox"
+git add <文件路径>
+git commit -m "commit message"
+git remote set-url origin "https://${env:LOGFOX_TOKEN}@github.com/fvgfgtxdeujv/LogFox.git"
+git push origin master
+git remote set-url origin "https://github.com/fvgfgtxdeujv/LogFox.git"
+```
+
+- push 到 master 会自动触发 workflow 构建
+- 最后一行恢复远程 URL 为公开地址，避免 token 长期暴露
+
+### 2. 手动触发 Workflow
+
+```powershell
+$token = (Get-Content "$HOME\.claude\.env" | Select-String "LogFox-Cli").ToString().Split('=')[1]
+curl -X POST -H "Authorization: token $token" `
+  -H "Content-Type: application/json" `
+  "https://api.github.com/repos/fvgfgtxdeujv/LogFox/actions/workflows/build_release.yml/dispatches" `
+  -d '{"ref":"master","inputs":{"create_release":false}}'
+```
+
+参数说明：
+- `ref`: 分支名，必须是 `master`
+- `inputs.create_release`: `true` 则创建 Release（需同时传 `version_name` 和 `version_code`），`false` 仅构建并上传到 Actions 界面
+- `inputs.version_name`: 版本号，如 `1.0.0`，仅创建 Release 时需要
+- `inputs.version_code`: 版本代码，仅创建 Release 时需要
+
+示例（创建 Release）：
+```powershell
+-d '{"ref":"master","inputs":{"create_release":true,"version_name":"1.0.0","version_code":"1000"}}'
+```
+
+### 3. 查看最近的 Workflow 运行状态
+
+```powershell
+$token = (Get-Content "$HOME\.claude\.env" | Select-String "LogFox-Cli").ToString().Split('=')[1]
+$runs = Invoke-RestMethod -Uri "https://api.github.com/repos/fvgfgtxdeujv/LogFox/actions/runs?per_page=5" -Headers @{Authorization = "token $token"}
+$runs.workflow_runs | ForEach-Object {
+    "$($_.run_number) $($_.event) $($_.status) $($_.conclusion) $($_.created_at)"
+}
+```
+
+### 4. 下载 Workflow 构建日志
+
+GitHub Actions API 返回的 `logs_url` 字段通常为空，推荐用下面的 zip 方式一次性下载全部日志。
+
+#### 方式一：下载完整日志 zip（推荐）
+
+```powershell
+$token = (Get-Content "$HOME\.claude\.env" | Select-String "LogFox-Cli").ToString().Split('=')[1]
+$runId = <run ID>
+
+# 下载 logs zip
+Invoke-WebRequest -Uri "https://api.github.com/repos/fvgfgtxdeujv/LogFox/actions/runs/$runId/logs" `
+  -OutFile "C:\Users\q\Desktop\build_logs_$runId.zip" `
+  -Headers @{Authorization = "token $token"}
+
+# 解压
+Expand-Archive -Path "C:\Users\q\Desktop\build_logs_$runId.zip" -DestinationPath "C:\temp\build_logs_$runId" -Force
+```
+
+#### 方式二：Python 下载（PowerShell TLS 报错时用）
+
+```bash
+python -c "
+import urllib.request, json, ssl, zipfile, io
+ctx = ssl.create_default_context()
+token = open('C:/Users/q/.claude/.env', encoding='utf-8').read().split('LogFox-Cli=')[1].strip()
+runId = '<run ID>'
+
+req = urllib.request.Request(
+    'https://api.github.com/repos/fvgfgtxdeujv/LogFox/actions/runs/' + runId + '/logs',
+    headers={'Authorization': 'token ' + token}
+)
+resp = urllib.request.urlopen(req, context=ctx, timeout=30)
+data = resp.read()
+
+with open('C:/temp/build_logs.zip', 'wb') as f:
+    f.write(data)
+
+with zipfile.ZipFile(io.BytesIO(data), 'r') as z:
+    z.extractall('C:/temp/build_logs/')
+    for name in z.namelist():
+        print('Extracted: ' + name)
+"
+```
+
+#### 方式三：逐个 step 下载（logs_url 可用时）
+
+```powershell
+$token = (Get-Content "$HOME\.claude\.env" | Select-String "LogFox-Cli").ToString().Split('=')[1]
+$runId = <run ID>
+$jobs = Invoke-RestMethod -Uri "https://api.github.com/repos/fvgfgtxdeujv/LogFox/actions/runs/$runId/jobs" -Headers @{Authorization = "token $token"}
+
+foreach ($job in $jobs.jobs) {
+    foreach ($step in $job.steps) {
+        if ($step.logs_url) {
+            $fileName = "$($job.name) - $($step.name).txt"
+            Invoke-WebRequest -Uri $step.logs_url -OutFile "C:\Users\q\Desktop\$fileName" -Headers @{Authorization = "token $token"}
+        }
+    }
+}
+```
+
+#### 日志目录结构
+
+解压后的日志目录：
+```
+<workflow 名称>/
+  system.txt                          # Runner 系统信息
+  1_Set up job.txt                    # 初始化
+  2_<job 名称>.txt                    # 每个 job 一个文件
+  <job 名称>/
+    <step 序号>_<step 名称>.txt       # 每个 step 的详细日志
+  <job 名称>/
+    13_Post <step 名称>.txt           # Post step
+    15_Complete job.txt               # Job 完成状态
+```
+
+### 5. 下载构建产物（APK）
+
+```powershell
+$token = (Get-Content "$HOME\.claude\.env" | Select-String "LogFox-Cli").ToString().Split('=')[1]
+$runId = <run ID>
+$artifacts = Invoke-RestMethod -Uri "https://api.github.com/repos/fvgfgtxdeujv/LogFox/actions/runs/$runId/artifacts" -Headers @{Authorization = "token $token"}
+
+foreach ($artifact in $artifacts.artifacts) {
+    $zipUrl = $artifact.archive_download_url
+    $outputZip = "C:\Users\q\Desktop\$($artifact.name).zip"
+    Invoke-WebRequest -Uri $zipUrl -OutFile $outputZip -Headers @{Authorization = "token $token" }
+    Write-Host "下载完成: $outputZip"
+}
+```
+
+### 6. 快速查看构建失败原因
+
+下载日志后，用下面的方式快速定位错误：
+
+```powershell
+# 搜索所有 Kotlin 编译错误
+python -c "
+import os, re
+for root, dirs, files in os.walk('C:/temp/build_logs'):
+    for f in files:
+        if f.endswith('.txt'):
+            path = os.path.join(root, f)
+            with open(path, 'r', encoding='utf-8', errors='replace') as fh:
+                lines = fh.readlines()
+            errors = [(i, l.rstrip()) for i, l in enumerate(lines) if l.strip().startswith('e:')]
+            if errors:
+                print('=== ' + path + ' ===')
+                for idx, line in errors[:20]:
+                    print('%d: %s' % (idx, line))
+"
+```
+
+```powershell
+# 搜索 BUILD FAILED 前的内容
+python -c "
+import os
+path = None
+for root, dirs, files in os.walk('C:/temp/build_logs'):
+    for f in files:
+        if 'Release' in f and f.endswith('.txt'):
+            path = os.path.join(root, f)
+            break
+
+with open(path, 'r', encoding='utf-8', errors='replace') as fh:
+    content = fh.read()
+
+idx = content.find('BUILD FAILED')
+if idx >= 0:
+    section = content[max(0,idx-3000):idx]
+    for line in section.split('\n')[-40:]:
+        print(line)
+"
+```
 
 ## 开发时间线与 CI/CD
 
@@ -221,11 +413,11 @@ McpServerDeps (单例)
 4. 分析报错，本地修复
 5. 重新 push，重复直到构建成功
 
-## 编译错误修复记录
+## 问题修复记录
 
-本次开发共遇到 5 个编译错误，全部解决：
+### 编译错误（MCP 功能开发期间）
 
-### 1. McpRoutes.kt — 扩展函数无法解析（Ktor 3.x）
+#### 1. McpRoutes.kt — 扩展函数无法解析（Ktor 3.x）
 
 **错误**: `Unresolved reference 'mcpRoutes'`
 
@@ -233,7 +425,7 @@ McpServerDeps (单例)
 
 **修复**: 将 `fun Application.mcpRoutes()` 改为 `fun mcpRoutes(application: Application)` 普通成员函数，`install` 和 `routing` 前加 `application.`。
 
-### 2. McpServerManagerImpl.kt — 协程函数在非协程上下文中调用
+#### 2. McpServerManagerImpl.kt — 协程函数在非协程上下文中调用
 
 **错误**: `Suspension functions can only be called within coroutine body`
 
@@ -241,7 +433,7 @@ McpServerDeps (单例)
 
 **修复**: 在 `start()`（`suspend` 函数）中提前调用 `selectedTerminal()` 获取值，作为参数传入 `mcpRoutes`。
 
-### 3. ReadLogsTool.kt — `buildJsonArray` 类型推断失败
+#### 3. ReadLogsTool.kt — `buildJsonArray` 类型推断失败
 
 **错误**: `Argument type mismatch`
 
@@ -249,7 +441,7 @@ McpServerDeps (单例)
 
 **修复**: 改为显式 `JsonArray(listOf(JsonPrimitive("stream"), JsonPrimitive("dump")))`。
 
-### 4. McpServerManagerImpl.kt — `mapOf` 类型推断失败
+#### 4. McpServerManagerImpl.kt — `mapOf` 类型推断失败
 
 **错误**: `Type mismatch` / `Argument type mismatch`
 
@@ -257,13 +449,24 @@ McpServerDeps (单例)
 
 **修复**: 改用 `LinkedHashMap<String, McpTool>()` 并配合 `@Suppress("UNCHECKED_CAST")`。
 
-### 5. McpServerManagerImpl.kt — `launch` deprecated
+#### 5. McpServerManagerImpl.kt — `launch` deprecated
 
 **错误**: `'fun launch(...)' is deprecated. 'launch' can not be called without the corresponding coroutine scope.`
 
 **原因**: `embeddedServer` lambda 是 `Application.() -> Unit`，不是 `CoroutineScope.() -> Unit`，直接调用 `launch` 会走顶层 deprecated 函数。
 
 **修复**: 将 `mcpRoutes` 改为非 suspend 函数，所有 `suspend` 调用在 `start()` 中提前 resolve。
+
+### 其他修复记录
+
+| 时间 | 问题 | 修复 |
+|------|------|------|
+| 2026-07-05 | `StartLoggingUseCase` 导入路径错误（5 个文件） | `data` → `domain` |
+| 2026-07-05 | `McpServerService` 缺少 `McpServerManager` 导入 | 添加显式导入 |
+| 2026-07-05 | `McpRoutes` 中 `McpLogLine` 路径错误 | `mcp.api` → `mcp.api.model` |
+| 2026-07-05 | 缺少 `ktor-server-content-negotiation` 依赖 | 添加依赖（注意用 `libs.ktor.server.content.negotiation`） |
+| 2026-07-05 | `McpServerManagerImpl` Ktor 3.x API 不兼容 | 修复 `ApplicationEngine` 类型、`connectors` 属性 |
+| 2026-07-05 | `ReadLogsTool` `listOf` 传给了 `JsonElement` | 改为 `buildJsonArray` |
 
 ## 构建要求
 
@@ -311,3 +514,21 @@ java.nio.charset.MalformedInputException: Input length = 1
 3. 或升级 AGP 到修复此问题的版本
 
 **注意**: 此错误不影响 MCP 代码本身——MCP 相关模块（`app`、`mcp/`）的代码逻辑是正确的。
+
+## 常见问题排查
+
+| 错误类型 | 典型信息 | 修复方式 |
+|----------|----------|----------|
+| 导入路径错误 | `Unresolved reference` | 检查导入的包路径是否正确 |
+| 依赖缺失 | `Unresolved reference: ContentNegotiation` | 在 `build.gradle.kts` 中添加对应依赖 |
+| Ktor API 变更 | `embeddedServer` 返回类型不匹配 | 改用 `Any` 类型存储 server 引用，用 `currentPort` 字段追踪端口 |
+| 类型推断失败 | `Cannot infer type for type parameter` | 显式指定泛型类型，如 `mapOf<String, McpTool>()` |
+| 序列化类型错误 | `Argument type mismatch: List<String>` | `listOf` 改为 `buildJsonArray { add(...) }` |
+
+## 常见 run 编号参考
+
+| Run # | 事件 | 状态 | 说明 |
+|-------|------|------|------|
+| 6 | push | completed/failure | 最新自动触发（Ktor API 兼容性问题） |
+| 5 | workflow_dispatch | failure | 手动触发 |
+| 4 | workflow_dispatch | failure | 手动触发 |
