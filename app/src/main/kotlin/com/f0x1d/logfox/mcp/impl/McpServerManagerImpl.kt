@@ -146,7 +146,7 @@ class McpServerManagerImpl @Inject constructor(
         }
 
         Timber.d("$TAG Stopping embedded server...")
-        (server as? io.ktor.server.engine.ApplicationEngine)?.stop(gracePeriod = 500, timeout = 2000)
+        (server as? io.ktor.server.engine.ApplicationEngine)?.stop(gracePeriodMillis = 500, timeoutMillis = 2000)
         server = null
         currentPort = McpServerManager.DEFAULT_PORT
         kotlinx.coroutines.delay(1000)
