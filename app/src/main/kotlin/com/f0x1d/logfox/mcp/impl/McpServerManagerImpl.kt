@@ -46,6 +46,7 @@ class McpServerManagerImpl @Inject constructor(
         val r1 = ReadLogsTool(
             startLoggingUseCase = startLoggingUseCase,
             getLastLogUseCase = getLastLogUseCase,
+            getSelectedTerminalUseCase = getSelectedTerminalUseCase,
         )
         result[r1.name] = r1
 
