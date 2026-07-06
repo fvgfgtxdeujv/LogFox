@@ -165,4 +165,18 @@
     <string name="remove_from_blacklist">从黑名单中移除</string>
     <string name="warning_blacklist">您确定要将此应用添加到黑名单吗？LogFox 将不会监听列入黑名单应用的崩溃</string>
     <string name="share_logs">分享日志</string>
+    <string name="mcp_server_notification_title">LogFox MCP 服务器</string>
+    <string name="mcp_server_notification_text">MCP 服务器运行在端口 %d</string>
+    <string name="mcp_server_notification_channel">MCP 服务器</string>
+    <string name="mcp_server_notification_desc">LogFox MCP 服务器用于 AI 集成</string>
+    <string name="mcp_server_stop">停止</string>
+    <string name="mcp_server">MCP 服务器</string>
+    <string name="mcp_server_enabled">启用 MCP 服务器</string>
+    <string name="mcp_server_port">服务器端口</string>
+    <string name="mcp_server_port_desc">默认: 8765</string>
+    <string name="mcp_server_start">启动 MCP 服务器</string>
+    <string name="mcp_server_stop_desc">停止 MCP 服务器</string>
+    <string name="mcp_server_status">服务器状态</string>
+    <string name="mcp_server_status_running">运行在端口 %d</string>
+    <string name="mcp_server_status_stopped">已停止</string>
 </resources>

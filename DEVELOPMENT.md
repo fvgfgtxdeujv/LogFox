@@ -67,7 +67,9 @@ LogFox/
 |------|------|------|
 | `/logs` | GET | SSE 日志流 |
 | `/logs/clear` | POST | 清空日志 |
-| `/query` | GET/POST | 获取/设置过滤条件 |
+| `/query` | GET | 获取过滤条件 |
+| `/query/set` | POST | 设置过滤条件 |
+| `/help` | GET | 获取所有端点帮助文档 |
 | `/filters` | GET | 获取启用的过滤器 |
 | `/tools` | GET | 工具列表 |
 | `/tools/{name}/call` | POST | 调用工具 |

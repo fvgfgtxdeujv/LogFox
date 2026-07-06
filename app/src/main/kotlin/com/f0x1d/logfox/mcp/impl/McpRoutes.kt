@@ -111,8 +111,8 @@ class McpRoutes(private val json: Json) {
                 }
             }
 
-            post("/query") {
-                Timber.i("$TAG Received POST /query request")
+            post("/query/set") {
+                Timber.i("$TAG Received POST /query/set request")
                 try {
                     val body = call.receiveText()
                     val jsonElement = json.parseToJsonElement(body)
@@ -123,7 +123,7 @@ class McpRoutes(private val json: Json) {
                     updateQueryUseCase(query)
                     call.respond(mapOf("result" to "ok", "query" to query))
                 } catch (e: Exception) {
-                    Timber.e(e, "$TAG POST /query error")
+                    Timber.e(e, "$TAG POST /query/set error")
                     call.respond(mapOf("error" to (e.message ?: "Unknown error")))
                 }
             }
@@ -357,6 +357,108 @@ class McpRoutes(private val json: Json) {
                     Timber.e(e, "$TAG JSON-RPC error")
                     call.respond(mapOf("error" to (e.message ?: "Unknown error")))
                 }
+            }
+
+            get("/help") {
+                Timber.i("$TAG Received GET /help request")
+                val helpDoc = buildJsonObject {
+                    put("server", "LogFox MCP Server")
+                    put("port", 8765)
+                    put("description", "LogFox MCP Server API documentation")
+                    putJsonArray("endpoints") {
+                        add(buildJsonObject {
+                            put("path", "/logs")
+                            put("method", "GET")
+                            put("description", "SSE 日志流，实时返回日志数据")
+                            put("example", "curl http://localhost:8765/logs")
+                        })
+                        add(buildJsonObject {
+                            put("path", "/logs/clear")
+                            put("method", "POST")
+                            put("description", "清空所有日志")
+                            put("example", "curl -X POST http://localhost:8765/logs/clear")
+                        })
+                        add(buildJsonObject {
+                            put("path", "/query")
+                            put("method", "GET")
+                            put("description", "获取当前过滤条件")
+                            put("example", "curl http://localhost:8765/query")
+                        })
+                        add(buildJsonObject {
+                            put("path", "/query/set")
+                            put("method", "POST")
+                            put("description", "设置过滤条件")
+                            put("body", "{\"query\": \"tag:LogFox\"}")
+                            put("example", "curl -X POST -H 'Content-Type: application/json' -d '{\"query\": \"tag:LogFox\"}' http://localhost:8765/query/set")
+                        })
+                        add(buildJsonObject {
+                            put("path", "/filters")
+                            put("method", "GET")
+                            put("description", "获取所有启用的过滤器")
+                            put("example", "curl http://localhost:8765/filters")
+                        })
+                        add(buildJsonObject {
+                            put("path", "/tools")
+                            put("method", "GET")
+                            put("description", "获取可用工具列表")
+                            put("example", "curl http://localhost:8765/tools")
+                        })
+                        add(buildJsonObject {
+                            put("path", "/tools/{name}/call")
+                            put("method", "POST")
+                            put("description", "调用指定工具")
+                            put("body", "{\"param1\": \"value1\"}")
+                            put("example", "curl -X POST -H 'Content-Type: application/json' -d '{\"mode\": \"stream\"}' http://localhost:8765/tools/read_logs/call")
+                        })
+                        add(buildJsonObject {
+                            put("path", "/mcp")
+                            put("method", "POST")
+                            put("description", "JSON-RPC 2.0 入口")
+                            put("body", "{\"jsonrpc\": \"2.0\", \"method\": \"tools/list\", \"id\": 1}")
+                            put("example", "curl -X POST -H 'Content-Type: application/json' -d '{\"jsonrpc\": \"2.0\", \"method\": \"tools/list\", \"id\": 1}' http://localhost:8765/mcp")
+                        })
+                        add(buildJsonObject {
+                            put("path", "/health")
+                            put("method", "GET")
+                            put("description", "健康检查")
+                            put("example", "curl http://localhost:8765/health")
+                        })
+                        add(buildJsonObject {
+                            put("path", "/help")
+                            put("method", "GET")
+                            put("description", "获取此帮助文档")
+                            put("example", "curl http://localhost:8765/help")
+                        })
+                    }
+                    putJsonArray("tools") {
+                        add(buildJsonObject {
+                            put("name", "read_logs")
+                            put("description", "读取日志流")
+                            put("params", "{\"mode\": \"stream/dump\"}")
+                        })
+                        add(buildJsonObject {
+                            put("name", "set_query")
+                            put("description", "设置过滤条件")
+                            put("params", "{\"query\": \"过滤字符串\"}")
+                        })
+                        add(buildJsonObject {
+                            put("name", "get_query")
+                            put("description", "获取过滤条件")
+                            put("params", "无")
+                        })
+                        add(buildJsonObject {
+                            put("name", "clear_logs")
+                            put("description", "清空日志")
+                            put("params", "无")
+                        })
+                        add(buildJsonObject {
+                            put("name", "get_filters")
+                            put("description", "获取过滤器")
+                            put("params", "无")
+                        })
+                    }
+                }
+                call.respond(helpDoc)
             }
 
             get("/health") {
