@@ -22,14 +22,18 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
 
                 val releaseSigningConfigName = "release"
                 val keyStoreFile = file("keystore/main.jks")
+                val keyStorePassword = System.getenv("KEY_STORE_PASSWORD")
+                val keyAlias = System.getenv("ALIAS")
+                val keyPassword = System.getenv("KEY_PASSWORD")
+                val canSign = keyStoreFile.exists() && keyStorePassword != null && keyAlias != null && keyPassword != null
 
-                if (keyStoreFile.exists()) {
+                if (canSign) {
                     signingConfigs {
                         create(releaseSigningConfigName) {
                             storeFile = keyStoreFile
-                            storePassword = System.getenv("KEY_STORE_PASSWORD")
-                            keyAlias = System.getenv("ALIAS")
-                            keyPassword = System.getenv("KEY_PASSWORD")
+                            storePassword = keyStorePassword
+                            keyAlias = keyAlias
+                            keyPassword = keyPassword
                         }
                     }
                 }
@@ -39,7 +43,7 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                         isMinifyEnabled = true
                         isShrinkResources = true
 
-                        if (keyStoreFile.exists()) {
+                        if (canSign) {
                             signingConfig = signingConfigs.getByName(releaseSigningConfigName)
                         }
 
