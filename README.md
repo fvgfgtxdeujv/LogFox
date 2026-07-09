@@ -35,6 +35,13 @@ Yet another LogCat reader for Android
   <img src="./metadata/en-US/images/phoneScreenshots/5.png" width="30%" />
 </p>
 
+## Issues / 反馈
+
+**提交 Issue 时必须附带崩溃日志，否则将不予采纳。**
+
+- 问题现象和复现步骤可选择性提供
+- **崩溃日志是必须的，缺少崩溃日志的 Issue 将直接关闭**
+
 ## License
 
 ```txt

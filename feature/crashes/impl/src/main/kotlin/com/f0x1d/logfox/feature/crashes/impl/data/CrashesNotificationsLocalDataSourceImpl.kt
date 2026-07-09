@@ -15,6 +15,7 @@ import com.f0x1d.logfox.core.context.makeBroadcastPendingIntent
 import com.f0x1d.logfox.core.context.notificationManager
 import com.f0x1d.logfox.core.context.notificationManagerCompat
 import com.f0x1d.logfox.core.copy.CopyReceiver
+import com.f0x1d.logfox.core.copy.CopyReceiver.Companion.EXTRA_LOG_FILE_PATH
 import com.f0x1d.logfox.core.ui.icons.Icons
 import com.f0x1d.logfox.feature.crashes.api.data.notificationChannelId
 import com.f0x1d.logfox.feature.crashes.api.model.AppCrash
@@ -74,7 +75,7 @@ constructor(
                             id = COPY_CRASH_INTENT_ID,
                             extras =
                             bundleOf(
-                                Intent.EXTRA_TEXT to crashLog,
+                                EXTRA_LOG_FILE_PATH to appCrash.logFile?.absolutePath,
                                 CopyReceiver.EXTRA_PACKAGE_NAME to appCrash.packageName,
                                 CopyReceiver.EXTRA_NOTIFICATION_ID to
                                     appCrash.notificationId,

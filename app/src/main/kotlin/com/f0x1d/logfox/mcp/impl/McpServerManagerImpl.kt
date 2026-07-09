@@ -3,17 +3,26 @@ package com.f0x1d.logfox.mcp.impl
 import com.f0x1d.logfox.feature.filters.api.domain.GetAllEnabledFiltersFlowUseCase
 import com.f0x1d.logfox.feature.logging.api.domain.ClearLogsUseCase
 import com.f0x1d.logfox.feature.logging.api.domain.GetLastLogUseCase
+import com.f0x1d.logfox.feature.logging.api.domain.GetLogsSnapshotUseCase
 import com.f0x1d.logfox.feature.logging.api.domain.GetQueryFlowUseCase
 import com.f0x1d.logfox.feature.logging.api.domain.StartLoggingUseCase
 import com.f0x1d.logfox.feature.logging.api.domain.UpdateQueryUseCase
+import com.f0x1d.logfox.feature.recordings.api.domain.EndRecordingUseCase
+import com.f0x1d.logfox.feature.recordings.api.domain.GetAllRecordingsFlowUseCase
+import com.f0x1d.logfox.feature.recordings.api.domain.GetRecordingByIdFlowUseCase
+import com.f0x1d.logfox.feature.recordings.api.domain.StartRecordingUseCase
 import com.f0x1d.logfox.feature.terminals.api.domain.GetSelectedTerminalUseCase
 import com.f0x1d.logfox.mcp.api.McpServerManager
 import com.f0x1d.logfox.mcp.api.McpTool
+import com.f0x1d.logfox.mcp.impl.auth.AuthConfig
 import com.f0x1d.logfox.mcp.impl.tools.ClearLogsTool
+import com.f0x1d.logfox.mcp.impl.tools.ExportLogsTool
 import com.f0x1d.logfox.mcp.impl.tools.GetFiltersTool
 import com.f0x1d.logfox.mcp.impl.tools.GetQueryTool
 import com.f0x1d.logfox.mcp.impl.tools.ReadLogsTool
+import com.f0x1d.logfox.mcp.impl.tools.SearchLogsTool
 import com.f0x1d.logfox.mcp.impl.tools.SetQueryTool
+import com.f0x1d.logfox.mcp.impl.websocket.McpWebSocketHandler
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
 import kotlinx.serialization.json.Json
@@ -28,16 +37,37 @@ class McpServerManagerImpl @Inject constructor(
     private val startLoggingUseCase: StartLoggingUseCase,
     private val getLastLogUseCase: GetLastLogUseCase,
     private val clearLogsUseCase: ClearLogsUseCase,
+    private val getLogsSnapshotUseCase: GetLogsSnapshotUseCase,
     private val getQueryFlowUseCase: GetQueryFlowUseCase,
     private val updateQueryUseCase: UpdateQueryUseCase,
     private val getAllEnabledFiltersFlowUseCase: GetAllEnabledFiltersFlowUseCase,
     private val getSelectedTerminalUseCase: GetSelectedTerminalUseCase,
+    private val startRecordingUseCase: StartRecordingUseCase,
+    private val endRecordingUseCase: EndRecordingUseCase,
+    private val getAllRecordingsFlowUseCase: GetAllRecordingsFlowUseCase,
+    private val getRecordingByIdFlowUseCase: GetRecordingByIdFlowUseCase,
 ) : McpServerManager {
 
     private var server: Any? = null
     private var currentPort = McpServerManager.DEFAULT_PORT
 
     private val json = Json { ignoreUnknownKeys = true }
+
+    private var authConfig = AuthConfig(enabled = false, apiKey = null)
+
+    private val webSocketHandler: McpWebSocketHandler by lazy {
+        McpWebSocketHandler(
+            clearLogsUseCase = clearLogsUseCase,
+            updateQueryUseCase = updateQueryUseCase,
+            startRecordingUseCase = startRecordingUseCase,
+            endRecordingUseCase = endRecordingUseCase,
+        )
+    }
+
+    fun setAuthConfig(enabled: Boolean, apiKey: String?) {
+        authConfig = AuthConfig(enabled = enabled, apiKey = apiKey)
+        Timber.d("$TAG Auth config updated: enabled=$enabled, hasKey=${apiKey != null}")
+    }
 
     init {
         Timber.d("$TAG McpServerManagerImpl initialized")
@@ -75,6 +105,14 @@ class McpServerManagerImpl @Inject constructor(
         result[r5.name] = r5
         Timber.d("$TAG Added tool: ${r5.name}")
 
+        val r6 = SearchLogsTool(getLogsSnapshotUseCase)
+        result[r6.name] = r6
+        Timber.d("$TAG Added tool: ${r6.name}")
+
+        val r7 = ExportLogsTool(getLogsSnapshotUseCase)
+        result[r7.name] = r7
+        Timber.d("$TAG Added tool: ${r7.name}")
+
         Timber.i("$TAG Tools map built, total ${result.size} tools")
         return result
     }
@@ -106,9 +144,16 @@ class McpServerManagerImpl @Inject constructor(
                     terminal = terminal,
                     startLoggingUseCase = startLoggingUseCase,
                     clearLogsUseCase = clearLogsUseCase,
+                    getLogsSnapshotUseCase = getLogsSnapshotUseCase,
                     getQueryFlowUseCase = getQueryFlowUseCase,
                     updateQueryUseCase = updateQueryUseCase,
                     getAllEnabledFiltersFlowUseCase = getAllEnabledFiltersFlowUseCase,
+                    startRecordingUseCase = startRecordingUseCase,
+                    endRecordingUseCase = endRecordingUseCase,
+                    getAllRecordingsFlowUseCase = getAllRecordingsFlowUseCase,
+                    getRecordingByIdFlowUseCase = getRecordingByIdFlowUseCase,
+                    authConfig = authConfig,
+                    webSocketHandler = webSocketHandler,
                     tools = tools,
                 )
                 Timber.d("$TAG Ktor routes configured")

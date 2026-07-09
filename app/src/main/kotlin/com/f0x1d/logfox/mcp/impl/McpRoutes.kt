@@ -3,11 +3,24 @@ package com.f0x1d.logfox.mcp.impl
 import com.f0x1d.logfox.feature.filters.api.domain.GetAllEnabledFiltersFlowUseCase
 import com.f0x1d.logfox.feature.logging.api.domain.StartLoggingUseCase
 import com.f0x1d.logfox.feature.logging.api.domain.ClearLogsUseCase
+import com.f0x1d.logfox.feature.logging.api.domain.GetLogsSnapshotUseCase
 import com.f0x1d.logfox.feature.logging.api.domain.GetQueryFlowUseCase
 import com.f0x1d.logfox.feature.logging.api.domain.UpdateQueryUseCase
+import com.f0x1d.logfox.feature.recordings.api.domain.EndRecordingUseCase
+import com.f0x1d.logfox.feature.recordings.api.domain.GetAllRecordingsFlowUseCase
+import com.f0x1d.logfox.feature.recordings.api.domain.GetRecordingByIdFlowUseCase
+import com.f0x1d.logfox.feature.recordings.api.domain.StartRecordingUseCase
 import com.f0x1d.logfox.mcp.api.McpTool
+import com.f0x1d.logfox.mcp.api.model.ExportRequest
+import com.f0x1d.logfox.mcp.api.model.LogRecordingInfo
 import com.f0x1d.logfox.mcp.api.model.McpLogLine
+import com.f0x1d.logfox.mcp.api.model.SearchRequest
+import com.f0x1d.logfox.mcp.api.model.SearchResponse
+import com.f0x1d.logfox.mcp.impl.auth.AuthConfig
 import com.f0x1d.logfox.mcp.impl.tools.ClearLogsTool
+import com.f0x1d.logfox.mcp.impl.websocket.McpWebSocketHandler
+import com.f0x1d.logfox.mcp.impl.websocket.McpWebSocketSession
+import com.f0x1d.logfox.mcp.impl.websocket.WsMessage
 import com.f0x1d.logfox.mcp.impl.tools.GetFiltersTool
 import com.f0x1d.logfox.mcp.impl.tools.GetQueryTool
 import com.f0x1d.logfox.mcp.impl.tools.ReadLogsTool
@@ -15,21 +28,30 @@ import com.f0x1d.logfox.mcp.impl.tools.SetQueryTool
 import com.f0x1d.logfox.feature.terminals.api.base.Terminal
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationCallPipeline
 import io.ktor.server.application.call
 import io.ktor.server.application.install
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.websocket.WebSockets
+import io.ktor.server.websocket.webSocket
+import io.ktor.websocket.Frame
 import io.ktor.server.request.receive
 import io.ktor.server.request.receiveText
+import io.ktor.server.request.uri
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondText
 import io.ktor.server.response.respondTextWriter
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
@@ -40,6 +62,9 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import timber.log.Timber
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class McpRoutes(private val json: Json) {
 
@@ -52,19 +77,49 @@ class McpRoutes(private val json: Json) {
         terminal: Terminal,
         startLoggingUseCase: StartLoggingUseCase,
         clearLogsUseCase: ClearLogsUseCase,
+        getLogsSnapshotUseCase: GetLogsSnapshotUseCase,
         getQueryFlowUseCase: GetQueryFlowUseCase,
         updateQueryUseCase: UpdateQueryUseCase,
         getAllEnabledFiltersFlowUseCase: GetAllEnabledFiltersFlowUseCase,
+        startRecordingUseCase: StartRecordingUseCase,
+        endRecordingUseCase: EndRecordingUseCase,
+        getAllRecordingsFlowUseCase: GetAllRecordingsFlowUseCase,
+        getRecordingByIdFlowUseCase: GetRecordingByIdFlowUseCase,
+        authConfig: AuthConfig,
+        webSocketHandler: McpWebSocketHandler,
         tools: Map<String, McpTool>,
     ) {
-        Timber.i("$TAG Configuring routes, terminal=${terminal.type.key}, tools=${tools.keys.joinToString()}")
+        Timber.i("$TAG Configuring routes, terminal=${terminal.type.key}, authEnabled=${authConfig.enabled}, tools=${tools.keys.joinToString()}")
 
         application.install(ContentNegotiation) {
             json(json)
             Timber.d("$TAG Installed ContentNegotiation plugin")
         }
 
+        application.install(WebSockets) {
+            Timber.d("$TAG Installed WebSockets plugin")
+        }
+
+        if (authConfig.enabled && authConfig.apiKey != null) {
+            val apiKey = authConfig.apiKey
+            application.intercept(ApplicationCallPipeline.Plugins) {
+                val path = call.request.uri
+                val skipAuth = path == "/health" || path == "/help"
+                if (!skipAuth) {
+                    val providedKey = call.request.headers["X-API-Key"]
+                    if (providedKey == null || providedKey != apiKey) {
+                        Timber.w("$TAG Auth failed for path=$path, key provided=${providedKey != null}")
+                        call.response.status(HttpStatusCode.Unauthorized)
+                        call.respond(mapOf("error" to "Unauthorized"))
+                        finish()
+                    }
+                }
+            }
+            Timber.i("$TAG API Key authentication enabled")
+        }
+
         application.routing {
+
             get("/logs") {
                 Timber.i("$TAG Received GET /logs request")
                 try {
@@ -95,6 +150,82 @@ class McpRoutes(private val json: Json) {
                     call.respond(mapOf("result" to "cleared"))
                 } catch (e: Exception) {
                     Timber.e(e, "$TAG /logs/clear error")
+                    call.respond(mapOf("error" to (e.message ?: "Unknown error")))
+                }
+            }
+
+            post("/logs/search") {
+                Timber.i("$TAG Received POST /logs/search request")
+                try {
+                    val request = call.receive<SearchRequest>()
+                    Timber.d("$TAG Search query='${request.query}', tag='${request.tag}', pkg='${request.packageName}', level='${request.level}', limit=${request.limit}, offset=${request.offset}")
+
+                    val allLogs = getLogsSnapshotUseCase()
+                    Timber.d("$TAG Total logs in snapshot: ${allLogs.size}")
+
+                    val filtered = allLogs.filter { logLine ->
+                        val tagMatch = request.tag?.let { logLine.tag.contains(it, ignoreCase = true) } ?: true
+                        val pkgMatch = request.packageName?.let { logLine.packageName?.contains(it, ignoreCase = true) ?: false } ?: true
+                        val levelMatch = request.level?.let { logLine.level.letter.equals(it, ignoreCase = true) } ?: true
+                        val queryMatch = request.query?.let { logLine.content.contains(it, ignoreCase = true) } ?: true
+                        tagMatch && pkgMatch && levelMatch && queryMatch
+                    }
+
+                    val paged = filtered.drop(request.offset).take(request.limit)
+                    val mcpLines = paged.map { McpLogLine.from(it) }
+
+                    Timber.d("$TAG Search found ${filtered.size} matches, returning ${mcpLines.size}")
+                    call.respond(
+                        SearchResponse(
+                            results = mcpLines,
+                            total = filtered.size,
+                            limit = request.limit,
+                            offset = request.offset,
+                        ),
+                    )
+                } catch (e: Exception) {
+                    Timber.e(e, "$TAG /logs/search error")
+                    call.respond(mapOf("error" to (e.message ?: "Unknown error")))
+                }
+            }
+
+            post("/logs/export") {
+                Timber.i("$TAG Received POST /logs/export request")
+                try {
+                    val request = call.receive<ExportRequest>()
+                    Timber.d("$TAG Export format='${request.format}', query='${request.query}', tag='${request.tag}', pkg='${request.packageName}', level='${request.level}', limit=${request.limit}")
+
+                    val allLogs = getLogsSnapshotUseCase()
+                    Timber.d("$TAG Total logs in snapshot: ${allLogs.size}")
+
+                    val filtered = allLogs.filter { logLine ->
+                        val tagMatch = request.tag?.let { logLine.tag.contains(it, ignoreCase = true) } ?: true
+                        val pkgMatch = request.packageName?.let { logLine.packageName?.contains(it, ignoreCase = true) ?: false } ?: true
+                        val levelMatch = request.level?.let { logLine.level.letter.equals(it, ignoreCase = true) } ?: true
+                        val queryMatch = request.query?.let { logLine.content.contains(it, ignoreCase = true) } ?: true
+                        tagMatch && pkgMatch && levelMatch && queryMatch
+                    }.take(request.limit)
+
+                    val sdf = SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.getDefault())
+                    val content = filtered.joinToString("\n") { logLine ->
+                        val timeStr = sdf.format(Date(logLine.dateAndTime))
+                        "$timeStr ${logLine.level.letter}/${logLine.tag}: ${logLine.content}"
+                    }
+
+                    val fileName = "logs_${System.currentTimeMillis()}.${request.format}"
+                    Timber.d("$TAG Exporting ${filtered.size} lines, file=$fileName, size=${content.toByteArray().size} bytes")
+
+                    call.response.headers.append(
+                        HttpHeaders.ContentDisposition,
+                        "attachment; filename=\"$fileName\"",
+                    )
+                    call.respondText(
+                        text = content,
+                        contentType = ContentType.Text.Plain,
+                        status = HttpStatusCode.OK,
+                    )
+                } catch (e: Exception) {
+                    Timber.e(e, "$TAG /logs/export error")
                     call.respond(mapOf("error" to (e.message ?: "Unknown error")))
                 }
             }
@@ -145,6 +276,72 @@ class McpRoutes(private val json: Json) {
                     call.respond(mapOf("filters" to filterObjects, "count" to filters.size))
                 } catch (e: Exception) {
                     Timber.e(e, "$TAG /filters error")
+                    call.respond(mapOf("error" to (e.message ?: "Unknown error")))
+                }
+            }
+
+            post("/record/start") {
+                Timber.i("$TAG Received POST /record/start request")
+                try {
+                    startRecordingUseCase()
+                    Timber.d("$TAG Recording started")
+                    call.respond(mapOf("status" to "started", "message" to "Recording started"))
+                } catch (e: Exception) {
+                    Timber.e(e, "$TAG /record/start error")
+                    call.respond(mapOf("error" to (e.message ?: "Unknown error")))
+                }
+            }
+
+            post("/record/stop") {
+                Timber.i("$TAG Received POST /record/stop request")
+                try {
+                    val recording = endRecordingUseCase()
+                    if (recording != null) {
+                        val info = LogRecordingInfo.from(recording)
+                        Timber.d("$TAG Recording stopped: ${recording.title}")
+                        call.respond(mapOf("status" to "stopped", "recording" to info))
+                    } else {
+                        Timber.w("$TAG No active recording to stop")
+                        call.respond(mapOf("status" to "no_recording", "message" to "No active recording"))
+                    }
+                } catch (e: Exception) {
+                    Timber.e(e, "$TAG /record/stop error")
+                    call.respond(mapOf("error" to (e.message ?: "Unknown error")))
+                }
+            }
+
+            get("/record/list") {
+                Timber.i("$TAG Received GET /record/list request")
+                try {
+                    val recordings = getAllRecordingsFlowUseCase().first()
+                    val infoList = recordings.map { LogRecordingInfo.from(it) }
+                    Timber.d("$TAG Found ${infoList.size} recordings")
+                    call.respond(mapOf("recordings" to infoList, "count" to infoList.size))
+                } catch (e: Exception) {
+                    Timber.e(e, "$TAG /record/list error")
+                    call.respond(mapOf("error" to (e.message ?: "Unknown error")))
+                }
+            }
+
+            get("/record/{id}") {
+                val idStr = call.parameters["id"]
+                Timber.i("$TAG Received GET /record/$idStr request")
+                try {
+                    val id = idStr?.toLongOrNull() ?: run {
+                        call.respond(mapOf("error" to "Invalid recording id"))
+                        return@get
+                    }
+                    val recording = getRecordingByIdFlowUseCase(id).first()
+                    if (recording != null) {
+                        val info = LogRecordingInfo.from(recording)
+                        Timber.d("$TAG Found recording: ${recording.title}")
+                        call.respond(info)
+                    } else {
+                        Timber.w("$TAG Recording not found: $id")
+                        call.respond(mapOf("error" to "Recording not found"))
+                    }
+                } catch (e: Exception) {
+                    Timber.e(e, "$TAG /record/{id} error")
                     call.respond(mapOf("error" to (e.message ?: "Unknown error")))
                 }
             }
@@ -379,6 +576,20 @@ class McpRoutes(private val json: Json) {
                             put("example", "curl -X POST http://localhost:8765/logs/clear")
                         })
                         add(buildJsonObject {
+                            put("path", "/logs/search")
+                            put("method", "POST")
+                            put("description", "搜索历史日志，支持关键词、标签、包名、级别过滤")
+                            put("body", "{\"query\": \"error\", \"level\": \"E\", \"limit\": 100}")
+                            put("example", "curl -X POST -H 'Content-Type: application/json' -d '{\"query\": \"error\"}' http://localhost:8765/logs/search")
+                        })
+                        add(buildJsonObject {
+                            put("path", "/logs/export")
+                            put("method", "POST")
+                            put("description", "导出日志为文本文件")
+                            put("body", "{\"format\": \"txt\", \"level\": \"E\"}")
+                            put("example", "curl -X POST -H 'Content-Type: application/json' -d '{\"format\": \"txt\"}' http://localhost:8765/logs/export")
+                        })
+                        add(buildJsonObject {
                             put("path", "/query")
                             put("method", "GET")
                             put("description", "获取当前过滤条件")
@@ -396,6 +607,30 @@ class McpRoutes(private val json: Json) {
                             put("method", "GET")
                             put("description", "获取所有启用的过滤器")
                             put("example", "curl http://localhost:8765/filters")
+                        })
+                        add(buildJsonObject {
+                            put("path", "/record/start")
+                            put("method", "POST")
+                            put("description", "开始录制日志")
+                            put("example", "curl -X POST http://localhost:8765/record/start")
+                        })
+                        add(buildJsonObject {
+                            put("path", "/record/stop")
+                            put("method", "POST")
+                            put("description", "停止录制日志")
+                            put("example", "curl -X POST http://localhost:8765/record/stop")
+                        })
+                        add(buildJsonObject {
+                            put("path", "/record/list")
+                            put("method", "GET")
+                            put("description", "获取录制列表")
+                            put("example", "curl http://localhost:8765/record/list")
+                        })
+                        add(buildJsonObject {
+                            put("path", "/record/{id}")
+                            put("method", "GET")
+                            put("description", "获取录制详情")
+                            put("example", "curl http://localhost:8765/record/1")
                         })
                         add(buildJsonObject {
                             put("path", "/tools")
@@ -429,12 +664,28 @@ class McpRoutes(private val json: Json) {
                             put("description", "获取此帮助文档")
                             put("example", "curl http://localhost:8765/help")
                         })
+                        add(buildJsonObject {
+                            put("path", "/ws")
+                            put("method", "WS")
+                            put("description", "WebSocket 实时通信端点，支持日志推送和命令发送")
+                            put("example", "wscat -c ws://localhost:8765/ws")
+                        })
                     }
                     putJsonArray("tools") {
                         add(buildJsonObject {
                             put("name", "read_logs")
                             put("description", "读取日志流")
                             put("params", "{\"mode\": \"stream/dump\"}")
+                        })
+                        add(buildJsonObject {
+                            put("name", "search_logs")
+                            put("description", "搜索历史日志")
+                            put("params", "{\"query\": \"关键词\", \"tag\": \"标签\", \"level\": \"级别\"}")
+                        })
+                        add(buildJsonObject {
+                            put("name", "export_logs")
+                            put("description", "导出日志为文本")
+                            put("params", "{\"format\": \"txt\", \"query\": \"关键词\"}")
                         })
                         add(buildJsonObject {
                             put("name", "set_query")
@@ -464,6 +715,51 @@ class McpRoutes(private val json: Json) {
             get("/health") {
                 Timber.i("$TAG Received GET /health request")
                 call.respond(mapOf("status" to "ok"))
+            }
+
+            webSocket("/ws") {
+                Timber.i("$TAG WebSocket connection established")
+                val session = McpWebSocketSession(this)
+
+                try {
+                    session.send(WsMessage(type = "connected", data = buildJsonObject { put("message", "Connected to LogFox MCP WebSocket") }))
+
+                    val logFlow = startLoggingUseCase(terminal = terminal)
+                    val logJob = launch(Dispatchers.IO) {
+                        try {
+                            logFlow.collect { logLine ->
+                                val mcpLine = McpLogLine.from(logLine)
+                                session.sendLog(mcpLine)
+                            }
+                        } catch (e: Exception) {
+                            Timber.e(e, "$TAG WebSocket log flow error")
+                        }
+                    }
+
+                    val eventJob = launch(Dispatchers.IO) {
+                        try {
+                            webSocketHandler.events.collect { event ->
+                                session.send(event)
+                            }
+                        } catch (e: Exception) {
+                            Timber.e(e, "$TAG WebSocket event flow error")
+                        }
+                    }
+
+                    for (frame in incoming) {
+                        frame as? Frame.Text ?: continue
+                        val text = frame.readText()
+                        Timber.d("$TAG WebSocket received: $text")
+                        webSocketHandler.handleMessage(text)
+                    }
+
+                    logJob.cancel()
+                    eventJob.cancel()
+                } catch (e: Exception) {
+                    Timber.e(e, "$TAG WebSocket error")
+                } finally {
+                    Timber.i("$TAG WebSocket connection closed")
+                }
             }
         }
 
