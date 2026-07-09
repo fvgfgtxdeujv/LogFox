@@ -188,6 +188,10 @@
     <string name="mcp_server_enabled">Enable MCP server</string>
     <string name="mcp_server_port">Server port</string>
     <string name="mcp_server_port_desc">Default: 8765</string>
+    <string name="mcp_server_host">Bind address</string>
+    <string name="mcp_server_host_desc">Choose IP address to bind</string>
+    <string name="mcp_server_host_local">Localhost (127.0.0.1)</string>
+    <string name="mcp_server_host_all">All interfaces (0.0.0.0)</string>
     <string name="mcp_server_start">Start MCP Server</string>
     <string name="mcp_server_stop_desc">Stop MCP Server</string>
     <string name="mcp_server_status">Server status</string>

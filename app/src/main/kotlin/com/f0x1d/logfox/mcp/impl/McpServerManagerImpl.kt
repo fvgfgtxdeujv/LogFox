@@ -1,5 +1,8 @@
 package com.f0x1d.logfox.mcp.impl
 
+import com.f0x1d.logfox.feature.database.impl.data.dao.AlertRuleDao
+import com.f0x1d.logfox.feature.database.impl.data.dao.LogTagDao
+import com.f0x1d.logfox.feature.database.impl.data.dao.QueryHistoryDao
 import com.f0x1d.logfox.feature.filters.api.domain.GetAllEnabledFiltersFlowUseCase
 import com.f0x1d.logfox.feature.logging.api.domain.ClearLogsUseCase
 import com.f0x1d.logfox.feature.logging.api.domain.GetLastLogUseCase
@@ -46,10 +49,14 @@ class McpServerManagerImpl @Inject constructor(
     private val endRecordingUseCase: EndRecordingUseCase,
     private val getAllRecordingsFlowUseCase: GetAllRecordingsFlowUseCase,
     private val getRecordingByIdFlowUseCase: GetRecordingByIdFlowUseCase,
+    private val queryHistoryDao: QueryHistoryDao,
+    private val alertRuleDao: AlertRuleDao,
+    private val logTagDao: LogTagDao,
 ) : McpServerManager {
 
     private var server: Any? = null
     private var currentPort = McpServerManager.DEFAULT_PORT
+    private var currentHost = McpServerManager.DEFAULT_HOST
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -117,11 +124,11 @@ class McpServerManagerImpl @Inject constructor(
         return result
     }
 
-    override suspend fun start(port: Int) {
-        Timber.d("$TAG Server start requested on port $port")
+    override suspend fun start(port: Int, host: String) {
+        Timber.d("$TAG Server start requested on $host:$port")
 
         if (isRunning) {
-            Timber.w("$TAG Server already running on port $currentPort, stopping first...")
+            Timber.w("$TAG Server already running on $currentHost:$currentPort, stopping first...")
             stop()
         }
 
@@ -135,9 +142,9 @@ class McpServerManagerImpl @Inject constructor(
         val terminal = getSelectedTerminalUseCase()
         Timber.i("$TAG Selected terminal: ${terminal.type.key}")
 
-        Timber.d("$TAG Creating embedded server on port $port...")
+        Timber.d("$TAG Creating embedded server on $host:$port...")
         try {
-            server = embeddedServer(CIO, port = port, host = "0.0.0.0") {
+            server = embeddedServer(CIO, port = port, host = host) {
                 Timber.d("$TAG Configuring Ktor routes...")
                 com.f0x1d.logfox.mcp.impl.McpRoutes(json).mcpRoutes(
                     application = this,
@@ -155,14 +162,19 @@ class McpServerManagerImpl @Inject constructor(
                     authConfig = authConfig,
                     webSocketHandler = webSocketHandler,
                     tools = tools,
+                    mcpServerManager = this@McpServerManagerImpl,
+                    queryHistoryDao = queryHistoryDao,
+                    alertRuleDao = alertRuleDao,
+                    logTagDao = logTagDao,
                 )
                 Timber.d("$TAG Ktor routes configured")
             }.start(wait = false)
 
             currentPort = port
+            currentHost = host
 
             kotlinx.coroutines.delay(500)
-            Timber.i("$TAG Server started successfully on port $port, isRunning=$isRunning")
+            Timber.i("$TAG Server started successfully on $host:$port, isRunning=$isRunning")
         } catch (e: Exception) {
             Timber.e(e, "$TAG Failed to start server on port $port")
             server = null
@@ -203,4 +215,13 @@ class McpServerManagerImpl @Inject constructor(
 
     override val port: Int
         get() = currentPort
+
+    override val host: String
+        get() = currentHost
+
+    override val authConfig: com.f0x1d.logfox.mcp.api.AuthConfig
+        get() = com.f0x1d.logfox.mcp.api.AuthConfig(
+            enabled = authConfig.enabled,
+            apiKey = authConfig.apiKey,
+        )
 }

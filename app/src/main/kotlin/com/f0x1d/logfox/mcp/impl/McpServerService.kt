@@ -24,7 +24,9 @@ class McpServerService : LifecycleService() {
     companion object {
         const val ACTION_STOP_SERVER = "mcp.STOP_SERVER"
         const val DEFAULT_PORT = 8765
+        const val DEFAULT_HOST = "0.0.0.0"
         const val EXTRA_PORT = "mcp.port"
+        const val EXTRA_HOST = "mcp.host"
         private const val TAG = "[MCP]"
     }
 
@@ -35,6 +37,7 @@ class McpServerService : LifecycleService() {
     lateinit var serviceSettingsRepository: ServiceSettingsRepository
 
     private var currentPort = DEFAULT_PORT
+    private var currentHost = DEFAULT_HOST
 
     override fun onCreate() {
         super.onCreate()
@@ -72,8 +75,11 @@ class McpServerService : LifecycleService() {
             try {
                 val port = intent?.getIntExtra(EXTRA_PORT, DEFAULT_PORT) 
                     ?: serviceSettingsRepository.mcpServerPort().value
+                val host = intent?.getStringExtra(EXTRA_HOST)
+                    ?: serviceSettingsRepository.mcpServerHost().value
                 currentPort = port
-                mcpServerManager.start(port)
+                currentHost = host
+                mcpServerManager.start(port, host)
                 Timber.i("$TAG Server start completed, isRunning=${mcpServerManager.isRunning}, port=${mcpServerManager.port}")
                 startForeground(1, notification())
             } catch (e: Exception) {

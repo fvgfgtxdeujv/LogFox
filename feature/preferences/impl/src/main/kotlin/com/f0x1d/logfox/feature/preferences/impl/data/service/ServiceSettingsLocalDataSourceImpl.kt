@@ -48,6 +48,11 @@ internal class ServiceSettingsLocalDataSourceImpl @Inject constructor(
         defaultValue = 8765,
     )
 
+    override fun mcpServerHost(): Preference<String> = stringPreference(
+        key = KEY_MCP_SERVER_HOST,
+        defaultValue = "0.0.0.0",
+    )
+
     private companion object {
         const val KEY_START_ON_BOOT = "pref_start_on_boot"
         const val KEY_SHOW_LOGS_FROM_APP_LAUNCH = "pref_show_logs_from_app_launch"
@@ -56,5 +61,6 @@ internal class ServiceSettingsLocalDataSourceImpl @Inject constructor(
         const val KEY_STOP_LOGGING_ON_BACK_EXIT = "pref_stop_logging_on_back_exit"
         const val KEY_EXPORT_LOGS_AS_TXT = "pref_export_logs_as_txt"
         const val KEY_MCP_SERVER_PORT = "pref_mcp_server_port"
+        const val KEY_MCP_SERVER_HOST = "pref_mcp_server_host"
     }
 }

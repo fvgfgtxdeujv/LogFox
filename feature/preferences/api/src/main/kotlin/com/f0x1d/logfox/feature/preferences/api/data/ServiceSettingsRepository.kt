@@ -10,4 +10,5 @@ interface ServiceSettingsRepository {
     fun stopLoggingOnBackExit(): PreferenceStateFlow<Boolean>
     fun exportLogsAsTxt(): PreferenceStateFlow<Boolean>
     fun mcpServerPort(): PreferenceStateFlow<Int>
+    fun mcpServerHost(): PreferenceStateFlow<String>
 }

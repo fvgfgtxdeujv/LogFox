@@ -7,16 +7,22 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.AutoMigrationSpec
 import androidx.room.migration.Migration
+import com.f0x1d.logfox.feature.database.impl.data.dao.AlertRuleDao
 import com.f0x1d.logfox.feature.database.impl.data.dao.AppCrashDao
 import com.f0x1d.logfox.feature.database.impl.data.dao.DisabledAppDao
 import com.f0x1d.logfox.feature.database.impl.data.dao.LogRecordingDao
+import com.f0x1d.logfox.feature.database.impl.data.dao.LogTagDao
+import com.f0x1d.logfox.feature.database.impl.data.dao.QueryHistoryDao
 import com.f0x1d.logfox.feature.database.impl.data.dao.UserFilterDao
+import com.f0x1d.logfox.feature.database.impl.entity.AlertRuleRoomEntity
 import com.f0x1d.logfox.feature.database.impl.entity.AllowedLevelsConverter
 import com.f0x1d.logfox.feature.database.impl.entity.AppCrashRoomEntity
 import com.f0x1d.logfox.feature.database.impl.entity.CrashTypeConverter
 import com.f0x1d.logfox.feature.database.impl.entity.DisabledAppRoomEntity
 import com.f0x1d.logfox.feature.database.impl.entity.FileConverter
 import com.f0x1d.logfox.feature.database.impl.entity.LogRecordingRoomEntity
+import com.f0x1d.logfox.feature.database.impl.entity.LogTagRoomEntity
+import com.f0x1d.logfox.feature.database.impl.entity.QueryHistoryRoomEntity
 import com.f0x1d.logfox.feature.database.impl.entity.UserFilterRoomEntity
 
 @Database(
@@ -25,8 +31,11 @@ import com.f0x1d.logfox.feature.database.impl.entity.UserFilterRoomEntity
         LogRecordingRoomEntity::class,
         UserFilterRoomEntity::class,
         DisabledAppRoomEntity::class,
+        QueryHistoryRoomEntity::class,
+        AlertRuleRoomEntity::class,
+        LogTagRoomEntity::class,
     ],
-    version = 18,
+    version = 21,
     autoMigrations = [
         AutoMigration(
             from = 12,
@@ -52,6 +61,18 @@ import com.f0x1d.logfox.feature.database.impl.entity.UserFilterRoomEntity
         AutoMigration(
             from = 17,
             to = 18,
+        ),
+        AutoMigration(
+            from = 18,
+            to = 19,
+        ),
+        AutoMigration(
+            from = 19,
+            to = 20,
+        ),
+        AutoMigration(
+            from = 20,
+            to = 21,
         ),
     ],
 )
@@ -113,4 +134,7 @@ internal abstract class AppDatabase : RoomDatabase() {
     abstract fun logRecordings(): LogRecordingDao
     abstract fun userFilters(): UserFilterDao
     abstract fun disabledApps(): DisabledAppDao
+    abstract fun queryHistory(): QueryHistoryDao
+    abstract fun alertRules(): AlertRuleDao
+    abstract fun logTags(): LogTagDao
 }

@@ -182,11 +182,20 @@
 
 ---
 
-## 端口配置
+## 网络配置
+
+### 端口配置
 
 - 默认端口：`8765`
 - 用户可在偏好设置中修改端口号
 - 修改端口后自动重启服务应用新端口
+
+### 绑定地址
+
+- 默认地址：`0.0.0.0`（允许局域网访问）
+- 可选地址：`127.0.0.1`（仅限本机访问，更安全）
+- 用户可在偏好设置中选择绑定地址
+- 修改绑定地址后自动重启服务应用新地址
 
 ---
 
@@ -206,9 +215,11 @@
 - `mcp/impl/auth/AuthConfig.kt`：API 认证配置
 - `mcp/impl/websocket/`：WebSocket 会话管理和消息处理器
 - `mcp/api/model/`：新增 SearchRequest、SearchResponse、ExportRequest、LogRecordingInfo、FilterGroup 模型
-- `feature/preferences/api/data/ServiceSettingsRepository.kt`：添加 `mcpServerPort()` 方法
-- `feature/preferences/impl/data/service/ServiceSettingsLocalDataSource.kt`：添加 `mcpServerPort()` 方法
-- `feature/preferences/impl/data/service/ServiceSettingsLocalDataSourceImpl.kt`：实现 `mcpServerPort()`，默认值 8765
-- `feature/preferences/impl/data/service/ServiceSettingsRepositoryImpl.kt`：实现 `mcpServerPort()`
-- `feature/preferences/presentation/service/ui/PreferencesServiceFragment.kt`：保存端口到 SharedPreferences，启动服务时传递端口号，修改端口后自动重启服务
-- `mcp/impl/McpServerService.kt`：从 Intent 读取端口号，回退到 SharedPreferences，支持动态端口配置
+- `feature/preferences/api/data/ServiceSettingsRepository.kt`：添加 `mcpServerPort()`、`mcpServerHost()` 方法
+- `feature/preferences/impl/data/service/ServiceSettingsLocalDataSource.kt`：添加 `mcpServerPort()`、`mcpServerHost()` 方法
+- `feature/preferences/impl/data/service/ServiceSettingsLocalDataSourceImpl.kt`：实现 `mcpServerPort()`（默认值 8765）、`mcpServerHost()`（默认值 0.0.0.0）
+- `feature/preferences/impl/data/service/ServiceSettingsRepositoryImpl.kt`：实现 `mcpServerPort()`、`mcpServerHost()`
+- `feature/preferences/presentation/service/ui/PreferencesServiceFragment.kt`：保存端口和绑定地址到 SharedPreferences，启动服务时传递，修改后自动重启服务；添加绑定地址选择对话框
+- `mcp/impl/McpServerService.kt`：从 Intent 读取端口号和绑定地址，回退到 SharedPreferences，支持动态网络配置
+- `mcp/api/McpServerManager.kt`：修改 `start()` 方法添加 `host` 参数
+- `mcp/impl/McpServerManagerImpl.kt`：使用 `host` 参数绑定指定 IP 地址

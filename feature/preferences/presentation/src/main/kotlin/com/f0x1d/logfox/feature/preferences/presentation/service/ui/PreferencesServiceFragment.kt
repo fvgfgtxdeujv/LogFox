@@ -75,6 +75,11 @@ internal class PreferencesServiceFragment :
             true
         }
 
+        findPreference<Preference>("pref_mcp_server_host")?.setOnPreferenceClickListener {
+            showHostDialog()
+            true
+        }
+
         findPreference<SwitchPreferenceCompat>("pref_mcp_server_enabled")?.apply {
             setOnPreferenceChangeListener { _, newValue ->
                 if (newValue as Boolean) {
@@ -91,15 +96,19 @@ internal class PreferencesServiceFragment :
         private const val MCP_SERVICE_CLASS = "com.f0x1d.logfox.mcp.impl.McpServerService"
         private const val MCP_ACTION_STOP = "mcp.STOP_SERVER"
         private const val DEFAULT_PORT = 8765
+        private const val DEFAULT_HOST = "0.0.0.0"
         const val EXTRA_PORT = "mcp.port"
+        const val EXTRA_HOST = "mcp.host"
     }
 
     private fun startMcpServer() {
         requireContext().toast(Strings.mcp_server_start)
         val port = serviceSettingsRepository.mcpServerPort().value
+        val host = serviceSettingsRepository.mcpServerHost().value
         val intent = Intent().apply {
             component = ComponentName(requireContext().packageName, MCP_SERVICE_CLASS)
             putExtra(EXTRA_PORT, port)
+            putExtra(EXTRA_HOST, host)
         }
         requireContext().startForegroundService(intent)
     }
@@ -124,6 +133,29 @@ internal class PreferencesServiceFragment :
                 val port = editText.text.toString().toIntOrNull() ?: DEFAULT_PORT
                 serviceSettingsRepository.mcpServerPort().set(port)
                 requireContext().toast("${Strings.mcp_server_port}: $port")
+                stopMcpServer()
+                startMcpServer()
+            }
+            .setNegativeButton(Strings.close, null)
+            .show()
+    }
+
+    private fun showHostDialog() {
+        val hosts = arrayOf(
+            getString(Strings.mcp_server_host_local),
+            getString(Strings.mcp_server_host_all)
+        )
+        val hostValues = arrayOf("127.0.0.1", "0.0.0.0")
+        val currentHost = serviceSettingsRepository.mcpServerHost().value
+        val selectedIndex = hostValues.indexOf(currentHost).coerceAtLeast(1)
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(Strings.mcp_server_host)
+            .setSingleChoiceItems(hosts, selectedIndex) { dialog, which ->
+                val host = hostValues[which]
+                serviceSettingsRepository.mcpServerHost().set(host)
+                requireContext().toast("${Strings.mcp_server_host}: $host")
+                dialog.dismiss()
                 stopMcpServer()
                 startMcpServer()
             }

@@ -5,6 +5,7 @@
 .gradle
 .idea
 .kotlin
+.trae
 build
 /app/release
 /captures

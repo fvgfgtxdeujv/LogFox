@@ -10,4 +10,5 @@ internal interface ServiceSettingsLocalDataSource {
     fun stopLoggingOnBackExit(): Preference<Boolean>
     fun exportLogsAsTxt(): Preference<Boolean>
     fun mcpServerPort(): Preference<Int>
+    fun mcpServerHost(): Preference<String>
 }
