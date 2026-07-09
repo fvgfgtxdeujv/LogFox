@@ -18,6 +18,7 @@ import com.f0x1d.logfox.feature.preferences.presentation.R
 import com.f0x1d.logfox.feature.preferences.presentation.service.PreferencesServiceCommand
 import com.f0x1d.logfox.feature.preferences.presentation.service.PreferencesServiceSideEffect
 import com.f0x1d.logfox.feature.preferences.presentation.service.PreferencesServiceState
+import com.f0x1d.logfox.feature.preferences.api.data.ServiceSettingsRepository
 import com.f0x1d.logfox.feature.preferences.presentation.service.PreferencesServiceViewModel
 import com.f0x1d.logfox.feature.preferences.presentation.service.PreferencesServiceViewState
 import com.f0x1d.logfox.feature.strings.Strings
@@ -38,6 +39,9 @@ internal class PreferencesServiceFragment :
         >() {
 
     override val viewModel by viewModels<PreferencesServiceViewModel>()
+
+    @Inject
+    lateinit var serviceSettingsRepository: ServiceSettingsRepository
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         addPreferencesFromResource(R.xml.settings_service)
@@ -87,12 +91,15 @@ internal class PreferencesServiceFragment :
         private const val MCP_SERVICE_CLASS = "com.f0x1d.logfox.mcp.impl.McpServerService"
         private const val MCP_ACTION_STOP = "mcp.STOP_SERVER"
         private const val DEFAULT_PORT = 8765
+        const val EXTRA_PORT = "mcp.port"
     }
 
     private fun startMcpServer() {
         requireContext().toast(Strings.mcp_server_start)
+        val port = serviceSettingsRepository.mcpServerPort().value
         val intent = Intent().apply {
             component = ComponentName(requireContext().packageName, MCP_SERVICE_CLASS)
+            putExtra(EXTRA_PORT, port)
         }
         requireContext().startForegroundService(intent)
     }
@@ -108,14 +115,17 @@ internal class PreferencesServiceFragment :
 
     private fun showPortDialog() {
         val editText = EditText(requireContext())
-        editText.setText(DEFAULT_PORT.toString())
+        editText.setText(serviceSettingsRepository.mcpServerPort().value.toString())
 
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(Strings.mcp_server_port)
             .setView(editText)
             .setPositiveButton(Strings.save) { _, _ ->
                 val port = editText.text.toString().toIntOrNull() ?: DEFAULT_PORT
+                serviceSettingsRepository.mcpServerPort().set(port)
                 requireContext().toast("${Strings.mcp_server_port}: $port")
+                stopMcpServer()
+                startMcpServer()
             }
             .setNegativeButton(Strings.close, null)
             .show()

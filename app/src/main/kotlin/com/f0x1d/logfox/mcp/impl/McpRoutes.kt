@@ -158,17 +158,52 @@ class McpRoutes(private val json: Json) {
                 Timber.i("$TAG Received POST /logs/search request")
                 try {
                     val request = call.receive<SearchRequest>()
-                    Timber.d("$TAG Search query='${request.query}', tag='${request.tag}', pkg='${request.packageName}', level='${request.level}', limit=${request.limit}, offset=${request.offset}")
+                    Timber.d("$TAG Search include=${request.include}, exclude=${request.exclude}, levels=${request.levels}, limit=${request.limit}, offset=${request.offset}")
 
                     val allLogs = getLogsSnapshotUseCase()
                     Timber.d("$TAG Total logs in snapshot: ${allLogs.size}")
 
                     val filtered = allLogs.filter { logLine ->
-                        val tagMatch = request.tag?.let { logLine.tag.contains(it, ignoreCase = true) } ?: true
-                        val pkgMatch = request.packageName?.let { logLine.packageName?.contains(it, ignoreCase = true) ?: false } ?: true
-                        val levelMatch = request.level?.let { logLine.level.letter.equals(it, ignoreCase = true) } ?: true
-                        val queryMatch = request.query?.let { logLine.content.contains(it, ignoreCase = true) } ?: true
-                        tagMatch && pkgMatch && levelMatch && queryMatch
+                        val include = request.include
+                        val exclude = request.exclude
+                        val levels = request.levels
+
+                        val includeCaseSensitive = include?.caseSensitive ?: false
+                        val excludeCaseSensitive = exclude?.caseSensitive ?: false
+
+                        val includeUid = include?.uid
+                        val includePid = include?.pid
+                        val includeTid = include?.tid
+                        val includePackageName = include?.packageName
+                        val includeTag = include?.tag
+                        val includeContent = include?.content
+
+                        val excludeUid = exclude?.uid
+                        val excludePid = exclude?.pid
+                        val excludeTid = exclude?.tid
+                        val excludePackageName = exclude?.packageName
+                        val excludeTag = exclude?.tag
+                        val excludeContent = exclude?.content
+
+                        val uidMatch = includeUid?.let { logLine.uid.contains(it, ignoreCase = !includeCaseSensitive) } ?: true
+                        val pidMatch = includePid?.let { logLine.pid.contains(it, ignoreCase = !includeCaseSensitive) } ?: true
+                        val tidMatch = includeTid?.let { logLine.tid.contains(it, ignoreCase = !includeCaseSensitive) } ?: true
+                        val pkgMatch = includePackageName?.let { logLine.packageName?.contains(it, ignoreCase = !includeCaseSensitive) ?: false } ?: true
+                        val tagMatch = includeTag?.let { logLine.tag.contains(it, ignoreCase = !includeCaseSensitive) } ?: true
+                        val contentMatch = includeContent?.let { logLine.content.contains(it, ignoreCase = !includeCaseSensitive) } ?: true
+
+                        val uidExclude = excludeUid?.let { !logLine.uid.contains(it, ignoreCase = !excludeCaseSensitive) } ?: true
+                        val pidExclude = excludePid?.let { !logLine.pid.contains(it, ignoreCase = !excludeCaseSensitive) } ?: true
+                        val tidExclude = excludeTid?.let { !logLine.tid.contains(it, ignoreCase = !excludeCaseSensitive) } ?: true
+                        val pkgExclude = excludePackageName?.let { !(logLine.packageName?.contains(it, ignoreCase = !excludeCaseSensitive) ?: false) } ?: true
+                        val tagExclude = excludeTag?.let { !logLine.tag.contains(it, ignoreCase = !excludeCaseSensitive) } ?: true
+                        val contentExclude = excludeContent?.let { !logLine.content.contains(it, ignoreCase = !excludeCaseSensitive) } ?: true
+
+                        val levelMatch = levels?.let { it.contains(logLine.level.letter, ignoreCase = true) } ?: true
+
+                        uidMatch && pidMatch && tidMatch && pkgMatch && tagMatch && contentMatch &&
+                        uidExclude && pidExclude && tidExclude && pkgExclude && tagExclude && contentExclude &&
+                        levelMatch
                     }
 
                     val paged = filtered.drop(request.offset).take(request.limit)
@@ -193,17 +228,52 @@ class McpRoutes(private val json: Json) {
                 Timber.i("$TAG Received POST /logs/export request")
                 try {
                     val request = call.receive<ExportRequest>()
-                    Timber.d("$TAG Export format='${request.format}', query='${request.query}', tag='${request.tag}', pkg='${request.packageName}', level='${request.level}', limit=${request.limit}")
+                    Timber.d("$TAG Export format='${request.format}', include=${request.include}, exclude=${request.exclude}, levels=${request.levels}, limit=${request.limit}")
 
                     val allLogs = getLogsSnapshotUseCase()
                     Timber.d("$TAG Total logs in snapshot: ${allLogs.size}")
 
                     val filtered = allLogs.filter { logLine ->
-                        val tagMatch = request.tag?.let { logLine.tag.contains(it, ignoreCase = true) } ?: true
-                        val pkgMatch = request.packageName?.let { logLine.packageName?.contains(it, ignoreCase = true) ?: false } ?: true
-                        val levelMatch = request.level?.let { logLine.level.letter.equals(it, ignoreCase = true) } ?: true
-                        val queryMatch = request.query?.let { logLine.content.contains(it, ignoreCase = true) } ?: true
-                        tagMatch && pkgMatch && levelMatch && queryMatch
+                        val include = request.include
+                        val exclude = request.exclude
+                        val levels = request.levels
+
+                        val includeCaseSensitive = include?.caseSensitive ?: false
+                        val excludeCaseSensitive = exclude?.caseSensitive ?: false
+
+                        val includeUid = include?.uid
+                        val includePid = include?.pid
+                        val includeTid = include?.tid
+                        val includePackageName = include?.packageName
+                        val includeTag = include?.tag
+                        val includeContent = include?.content
+
+                        val excludeUid = exclude?.uid
+                        val excludePid = exclude?.pid
+                        val excludeTid = exclude?.tid
+                        val excludePackageName = exclude?.packageName
+                        val excludeTag = exclude?.tag
+                        val excludeContent = exclude?.content
+
+                        val uidMatch = includeUid?.let { logLine.uid.contains(it, ignoreCase = !includeCaseSensitive) } ?: true
+                        val pidMatch = includePid?.let { logLine.pid.contains(it, ignoreCase = !includeCaseSensitive) } ?: true
+                        val tidMatch = includeTid?.let { logLine.tid.contains(it, ignoreCase = !includeCaseSensitive) } ?: true
+                        val pkgMatch = includePackageName?.let { logLine.packageName?.contains(it, ignoreCase = !includeCaseSensitive) ?: false } ?: true
+                        val tagMatch = includeTag?.let { logLine.tag.contains(it, ignoreCase = !includeCaseSensitive) } ?: true
+                        val contentMatch = includeContent?.let { logLine.content.contains(it, ignoreCase = !includeCaseSensitive) } ?: true
+
+                        val uidExclude = excludeUid?.let { !logLine.uid.contains(it, ignoreCase = !excludeCaseSensitive) } ?: true
+                        val pidExclude = excludePid?.let { !logLine.pid.contains(it, ignoreCase = !excludeCaseSensitive) } ?: true
+                        val tidExclude = excludeTid?.let { !logLine.tid.contains(it, ignoreCase = !excludeCaseSensitive) } ?: true
+                        val pkgExclude = excludePackageName?.let { !(logLine.packageName?.contains(it, ignoreCase = !excludeCaseSensitive) ?: false) } ?: true
+                        val tagExclude = excludeTag?.let { !logLine.tag.contains(it, ignoreCase = !excludeCaseSensitive) } ?: true
+                        val contentExclude = excludeContent?.let { !logLine.content.contains(it, ignoreCase = !excludeCaseSensitive) } ?: true
+
+                        val levelMatch = levels?.let { it.contains(logLine.level.letter, ignoreCase = true) } ?: true
+
+                        uidMatch && pidMatch && tidMatch && pkgMatch && tagMatch && contentMatch &&
+                        uidExclude && pidExclude && tidExclude && pkgExclude && tagExclude && contentExclude &&
+                        levelMatch
                     }.take(request.limit)
 
                     val sdf = SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.getDefault())
@@ -418,6 +488,32 @@ class McpRoutes(private val json: Json) {
                     Timber.i("$TAG Received JSON-RPC request: method=$method, id=$id")
 
                     when (method) {
+                        "server/discover" -> {
+                            Timber.d("$TAG Processing server/discover")
+                            call.respond(
+                                TextContent(
+                                    json.encodeToString(
+                                        buildJsonObject {
+                                            put("jsonrpc", "2.0")
+                                            put("id", id)
+                                            put("result", buildJsonObject {
+                                                put("name", "LogFox MCP Server")
+                                                put("version", "1.0.0")
+                                                put("description", "LogCat reader MCP server for Android")
+                                                putJsonArray("protocolVersions") {
+                                                    add("2025-11-25")
+                                                    add("2026-07-28")
+                                                }
+                                                put("capabilities", buildJsonObject {
+                                                    put("tools", buildJsonObject {})
+                                                })
+                                            })
+                                        },
+                                    ),
+                                    contentType = io.ktor.http.ContentType.Application.Json,
+                                ),
+                            )
+                        }
                         "tools/list" -> {
                             Timber.d("$TAG Processing tools/list")
                             val toolList = tools.values.map { tool ->
@@ -478,6 +574,7 @@ class McpRoutes(private val json: Json) {
                                                     put("jsonrpc", "2.0")
                                                     put("id", id)
                                                     put("result", buildJsonObject {
+                                                        put("resultType", "complete")
                                                         putJsonArray("content") {
                                                             result.content.forEach { block ->
                                                                 add(
@@ -646,9 +743,30 @@ class McpRoutes(private val json: Json) {
                             put("example", "curl -X POST -H 'Content-Type: application/json' -d '{\"mode\": \"stream\"}' http://localhost:8765/tools/read_logs/call")
                         })
                         add(buildJsonObject {
+                            put("path", "/server/discover")
+                            put("method", "POST")
+                            put("description", "MCP 服务器发现端点，返回服务器信息和支持的协议版本")
+                            put("body", "{\"jsonrpc\": \"2.0\", \"method\": \"server/discover\", \"id\": 1}")
+                            put("example", "curl -X POST -H 'Content-Type: application/json' -d '{\"jsonrpc\": \"2.0\", \"method\": \"server/discover\", \"id\": 1}' http://localhost:8765/server/discover")
+                        })
+                        add(buildJsonObject {
+                            put("path", "/tools/list")
+                            put("method", "GET/POST")
+                            put("description", "MCP 标准工具列表端点，返回所有可用工具")
+                            put("body", "{\"jsonrpc\": \"2.0\", \"method\": \"tools/list\", \"id\": 1}")
+                            put("example", "curl -X GET http://localhost:8765/tools/list")
+                        })
+                        add(buildJsonObject {
+                            put("path", "/tools/call")
+                            put("method", "POST")
+                            put("description", "MCP 标准工具调用端点，支持 _meta 参数")
+                            put("body", "{\"jsonrpc\": \"2.0\", \"method\": \"tools/call\", \"id\": 1, \"params\": {\"name\": \"get_query\", \"arguments\": {}}}")
+                            put("example", "curl -X POST -H 'Content-Type: application/json' -d '{\"jsonrpc\": \"2.0\", \"method\": \"tools/call\", \"id\": 1, \"params\": {\"name\": \"get_query\", \"arguments\": {}}}' http://localhost:8765/tools/call")
+                        })
+                        add(buildJsonObject {
                             put("path", "/mcp")
                             put("method", "POST")
-                            put("description", "JSON-RPC 2.0 入口")
+                            put("description", "JSON-RPC 2.0 入口（兼容模式）")
                             put("body", "{\"jsonrpc\": \"2.0\", \"method\": \"tools/list\", \"id\": 1}")
                             put("example", "curl -X POST -H 'Content-Type: application/json' -d '{\"jsonrpc\": \"2.0\", \"method\": \"tools/list\", \"id\": 1}' http://localhost:8765/mcp")
                         })
@@ -715,6 +833,217 @@ class McpRoutes(private val json: Json) {
             get("/health") {
                 Timber.i("$TAG Received GET /health request")
                 call.respond(mapOf("status" to "ok"))
+            }
+
+            post("/server/discover") {
+                Timber.i("$TAG Received POST /server/discover request")
+                try {
+                    val body = call.receiveText()
+                    val request = json.parseToJsonElement(body).jsonObject
+                    val id = request["id"] ?: JsonNull
+
+                    val response = buildJsonObject {
+                        put("jsonrpc", "2.0")
+                        put("id", id)
+                        put("result", buildJsonObject {
+                            put("name", "LogFox MCP Server")
+                            put("version", "1.0.0")
+                            put("description", "LogCat reader MCP server for Android")
+                            putJsonArray("protocolVersions") {
+                                add("2025-11-25")
+                                add("2026-07-28")
+                            }
+                            put("capabilities", buildJsonObject {
+                                put("tools", buildJsonObject {})
+                            })
+                        })
+                    }
+
+                    call.respond(
+                        TextContent(
+                            json.encodeToString(response),
+                            contentType = ContentType.Application.Json,
+                        ),
+                    )
+                } catch (e: Exception) {
+                    Timber.e(e, "$TAG /server/discover error")
+                    call.respond(mapOf("error" to (e.message ?: "Unknown error")))
+                }
+            }
+
+            get("/tools/list") {
+                Timber.i("$TAG Received GET /tools/list request")
+                try {
+                    val toolList = tools.values.map { tool ->
+                        buildJsonObject {
+                            put("name", tool.name)
+                            put("description", tool.description)
+                            put("inputSchema", tool.inputSchema)
+                        }
+                    }
+
+                    val response = buildJsonObject {
+                        put("jsonrpc", "2.0")
+                        put("id", 0)
+                        put("result", buildJsonObject {
+                            putJsonArray("tools") {
+                                toolList.forEach { add(it) }
+                            }
+                        })
+                    }
+
+                    call.respond(
+                        TextContent(
+                            json.encodeToString(response),
+                            contentType = ContentType.Application.Json,
+                        ),
+                    )
+                } catch (e: Exception) {
+                    Timber.e(e, "$TAG /tools/list error")
+                    call.respond(mapOf("error" to (e.message ?: "Unknown error")))
+                }
+            }
+
+            post("/tools/list") {
+                Timber.i("$TAG Received POST /tools/list request")
+                try {
+                    val body = call.receiveText()
+                    val request = json.parseToJsonElement(body).jsonObject
+                    val id = request["id"] ?: JsonNull
+
+                    val toolList = tools.values.map { tool ->
+                        buildJsonObject {
+                            put("name", tool.name)
+                            put("description", tool.description)
+                            put("inputSchema", tool.inputSchema)
+                        }
+                    }
+
+                    val response = buildJsonObject {
+                        put("jsonrpc", "2.0")
+                        put("id", id)
+                        put("result", buildJsonObject {
+                            putJsonArray("tools") {
+                                toolList.forEach { add(it) }
+                            }
+                        })
+                    }
+
+                    call.respond(
+                        TextContent(
+                            json.encodeToString(response),
+                            contentType = ContentType.Application.Json,
+                        ),
+                    )
+                } catch (e: Exception) {
+                    Timber.e(e, "$TAG /tools/list error")
+                    call.respond(mapOf("error" to (e.message ?: "Unknown error")))
+                }
+            }
+
+            post("/tools/call") {
+                Timber.i("$TAG Received POST /tools/call request")
+                try {
+                    val body = call.receiveText()
+                    val request = json.parseToJsonElement(body).jsonObject
+                    val id = request["id"] ?: JsonNull
+
+                    val params = request["params"]?.jsonObject ?: JsonObject(emptyMap())
+                    val toolName = params["name"]?.jsonPrimitive?.content ?: ""
+                    val arguments = params["arguments"]?.jsonObject ?: JsonObject(emptyMap())
+
+                    val meta = request["_meta"]?.jsonObject
+
+                    Timber.d("$TAG tools/call: tool=$toolName, meta=$meta")
+
+                    val tool = tools[toolName]
+                    if (tool == null) {
+                        Timber.w("$TAG Tool not found: $toolName")
+                        call.respond(
+                            TextContent(
+                                json.encodeToString(
+                                    buildJsonObject {
+                                        put("jsonrpc", "2.0")
+                                        put("id", id)
+                                        put("error", buildJsonObject {
+                                            put("code", -32601)
+                                            put("message", "Tool not found: $toolName")
+                                        })
+                                    },
+                                ),
+                                contentType = ContentType.Application.Json,
+                            ),
+                        )
+                        return@post
+                    }
+
+                    when (val result = tool.call(arguments)) {
+                        is com.f0x1d.logfox.mcp.api.ToolResult.Value -> {
+                            Timber.d("$TAG tools/call returned Value")
+                            call.respond(
+                                TextContent(
+                                    json.encodeToString(
+                                        buildJsonObject {
+                                            put("jsonrpc", "2.0")
+                                            put("id", id)
+                                            put("result", buildJsonObject {
+                                                put("resultType", "complete")
+                                                putJsonArray("content") {
+                                                    result.content.forEach { block ->
+                                                        add(
+                                                            buildJsonObject {
+                                                                put("type", block.type)
+                                                                if (block.text != null) put("text", block.text)
+                                                                if (block.data != null) put("data", block.data)
+                                                            },
+                                                        )
+                                                    }
+                                                }
+                                            })
+                                        },
+                                    ),
+                                    contentType = ContentType.Application.Json,
+                                ),
+                            )
+                        }
+                        is com.f0x1d.logfox.mcp.api.ToolResult.Error -> {
+                            Timber.e("$TAG tools/call returned Error: ${result.message}")
+                            call.respond(
+                                TextContent(
+                                    json.encodeToString(
+                                        buildJsonObject {
+                                            put("jsonrpc", "2.0")
+                                            put("id", id)
+                                            put("error", buildJsonObject {
+                                                put("code", -32000)
+                                                put("message", result.message)
+                                            })
+                                        },
+                                    ),
+                                    contentType = ContentType.Application.Json,
+                                ),
+                            )
+                        }
+                        is com.f0x1d.logfox.mcp.api.ToolResult.Stream -> {
+                            Timber.d("$TAG tools/call returned Stream")
+                            call.response.headers.append(HttpHeaders.CacheControl, "no-cache")
+                            call.respondTextWriter(contentType = ContentType.Text.EventStream) {
+                                result.flow.collect { block ->
+                                    val item = buildJsonObject {
+                                        put("type", block.type)
+                                        if (block.text != null) put("text", block.text)
+                                        if (block.data != null) put("data", block.data)
+                                    }
+                                    write("data: ${json.encodeToString(item)}\n\n")
+                                    flush()
+                                }
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Timber.e(e, "$TAG /tools/call error")
+                    call.respond(mapOf("error" to (e.message ?: "Unknown error")))
+                }
             }
 
             webSocket("/ws") {

@@ -4,10 +4,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class SearchRequest(
-    val query: String? = null,
-    val tag: String? = null,
-    val packageName: String? = null,
-    val level: String? = null,
+    val include: FilterGroup? = null,
+    val exclude: FilterGroup? = null,
+    val levels: List<String>? = null,
     val limit: Int = 1000,
     val offset: Int = 0,
 )

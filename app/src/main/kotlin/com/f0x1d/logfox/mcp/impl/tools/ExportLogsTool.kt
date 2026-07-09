@@ -3,7 +3,10 @@ package com.f0x1d.logfox.mcp.impl.tools
 import com.f0x1d.logfox.feature.logging.api.domain.GetLogsSnapshotUseCase
 import com.f0x1d.logfox.mcp.api.McpTool
 import com.f0x1d.logfox.mcp.api.ToolResult
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonPrimitive
@@ -18,7 +21,7 @@ class ExportLogsTool(
 
     override val name: String = "export_logs"
 
-    override val description: String = "导出日志为文本格式，支持按条件过滤"
+    override val description: String = "导出日志为文本格式，支持包含/排除模式和多字段过滤"
 
     override val inputSchema: JsonObject = buildJsonObject {
         put("type", "object")
@@ -27,21 +30,88 @@ class ExportLogsTool(
                 put("type", "string")
                 put("description", "导出格式 (txt/log)，默认 txt")
             })
-            put("query", buildJsonObject {
-                put("type", "string")
-                put("description", "关键词过滤")
+            put("include", buildJsonObject {
+                put("type", "object")
+                put("description", "包含条件组（所有条件必须满足）")
+                put("properties", buildJsonObject {
+                    put("uid", buildJsonObject {
+                        put("type", "string")
+                        put("description", "用户 ID 匹配")
+                    })
+                    put("pid", buildJsonObject {
+                        put("type", "string")
+                        put("description", "进程 ID 匹配")
+                    })
+                    put("tid", buildJsonObject {
+                        put("type", "string")
+                        put("description", "线程 ID 匹配")
+                    })
+                    put("package_name", buildJsonObject {
+                        put("type", "string")
+                        put("description", "包名匹配")
+                    })
+                    put("tag", buildJsonObject {
+                        put("type", "string")
+                        put("description", "标签匹配")
+                    })
+                    put("content", buildJsonObject {
+                        put("type", "string")
+                        put("description", "日志内容匹配")
+                    })
+                    put("case_sensitive", buildJsonObject {
+                        put("type", "boolean")
+                        put("description", "是否大小写敏感，默认 false")
+                    })
+                })
             })
-            put("tag", buildJsonObject {
-                put("type", "string")
-                put("description", "按标签过滤")
+            put("exclude", buildJsonObject {
+                put("type", "object")
+                put("description", "排除条件组（任何条件满足则排除）")
+                put("properties", buildJsonObject {
+                    put("uid", buildJsonObject {
+                        put("type", "string")
+                        put("description", "排除用户 ID")
+                    })
+                    put("pid", buildJsonObject {
+                        put("type", "string")
+                        put("description", "排除进程 ID")
+                    })
+                    put("tid", buildJsonObject {
+                        put("type", "string")
+                        put("description", "排除线程 ID")
+                    })
+                    put("package_name", buildJsonObject {
+                        put("type", "string")
+                        put("description", "排除包名")
+                    })
+                    put("tag", buildJsonObject {
+                        put("type", "string")
+                        put("description", "排除标签")
+                    })
+                    put("content", buildJsonObject {
+                        put("type", "string")
+                        put("description", "排除日志内容")
+                    })
+                    put("case_sensitive", buildJsonObject {
+                        put("type", "boolean")
+                        put("description", "是否大小写敏感，默认 false")
+                    })
+                })
             })
-            put("package_name", buildJsonObject {
-                put("type", "string")
-                put("description", "按包名过滤")
-            })
-            put("level", buildJsonObject {
-                put("type", "string")
-                put("description", "按日志级别过滤 (V/D/I/W/E/F)")
+            put("levels", buildJsonObject {
+                put("type", "array")
+                put("description", "日志级别列表 (V/D/I/W/E/F)")
+                put("items", buildJsonObject {
+                    put("type", "string")
+                    put("enum", JsonArray(listOf(
+                        JsonPrimitive("V"),
+                        JsonPrimitive("D"),
+                        JsonPrimitive("I"),
+                        JsonPrimitive("W"),
+                        JsonPrimitive("E"),
+                        JsonPrimitive("F"),
+                    )))
+                })
             })
             put("limit", buildJsonObject {
                 put("type", "number")
@@ -52,20 +122,50 @@ class ExportLogsTool(
 
     override suspend fun call(params: JsonObject): ToolResult {
         val format = params["format"]?.jsonPrimitive?.content ?: "txt"
-        val query = params["query"]?.jsonPrimitive?.content
-        val tag = params["tag"]?.jsonPrimitive?.content
-        val packageName = params["package_name"]?.jsonPrimitive?.content
-        val level = params["level"]?.jsonPrimitive?.content
+        val include = params["include"]?.jsonObject
+        val exclude = params["exclude"]?.jsonObject
+        val levels = params["levels"]?.jsonArray?.map { it.jsonPrimitive.content }
         val limit = params["limit"]?.jsonPrimitive?.int ?: 50000
+
+        val includeCaseSensitive = include?.get("case_sensitive")?.jsonPrimitive?.boolean ?: false
+        val excludeCaseSensitive = exclude?.get("case_sensitive")?.jsonPrimitive?.boolean ?: false
 
         val allLogs = getLogsSnapshotUseCase()
 
         val filtered = allLogs.filter { logLine ->
-            val tagMatch = tag?.let { logLine.tag.contains(it, ignoreCase = true) } ?: true
-            val pkgMatch = packageName?.let { logLine.packageName?.contains(it, ignoreCase = true) ?: false } ?: true
-            val levelMatch = level?.let { logLine.level.letter.equals(it, ignoreCase = true) } ?: true
-            val queryMatch = query?.let { logLine.content.contains(it, ignoreCase = true) } ?: true
-            tagMatch && pkgMatch && levelMatch && queryMatch
+            val includeUid = include?.get("uid")?.jsonPrimitive?.content
+            val includePid = include?.get("pid")?.jsonPrimitive?.content
+            val includeTid = include?.get("tid")?.jsonPrimitive?.content
+            val includePackageName = include?.get("package_name")?.jsonPrimitive?.content
+            val includeTag = include?.get("tag")?.jsonPrimitive?.content
+            val includeContent = include?.get("content")?.jsonPrimitive?.content
+
+            val excludeUid = exclude?.get("uid")?.jsonPrimitive?.content
+            val excludePid = exclude?.get("pid")?.jsonPrimitive?.content
+            val excludeTid = exclude?.get("tid")?.jsonPrimitive?.content
+            val excludePackageName = exclude?.get("package_name")?.jsonPrimitive?.content
+            val excludeTag = exclude?.get("tag")?.jsonPrimitive?.content
+            val excludeContent = exclude?.get("content")?.jsonPrimitive?.content
+
+            val uidMatch = includeUid?.let { logLine.uid.contains(it, ignoreCase = !includeCaseSensitive) } ?: true
+            val pidMatch = includePid?.let { logLine.pid.contains(it, ignoreCase = !includeCaseSensitive) } ?: true
+            val tidMatch = includeTid?.let { logLine.tid.contains(it, ignoreCase = !includeCaseSensitive) } ?: true
+            val pkgMatch = includePackageName?.let { logLine.packageName?.contains(it, ignoreCase = !includeCaseSensitive) ?: false } ?: true
+            val tagMatch = includeTag?.let { logLine.tag.contains(it, ignoreCase = !includeCaseSensitive) } ?: true
+            val contentMatch = includeContent?.let { logLine.content.contains(it, ignoreCase = !includeCaseSensitive) } ?: true
+
+            val uidExclude = excludeUid?.let { !logLine.uid.contains(it, ignoreCase = !excludeCaseSensitive) } ?: true
+            val pidExclude = excludePid?.let { !logLine.pid.contains(it, ignoreCase = !excludeCaseSensitive) } ?: true
+            val tidExclude = excludeTid?.let { !logLine.tid.contains(it, ignoreCase = !excludeCaseSensitive) } ?: true
+            val pkgExclude = excludePackageName?.let { !(logLine.packageName?.contains(it, ignoreCase = !excludeCaseSensitive) ?: false) } ?: true
+            val tagExclude = excludeTag?.let { !logLine.tag.contains(it, ignoreCase = !excludeCaseSensitive) } ?: true
+            val contentExclude = excludeContent?.let { !logLine.content.contains(it, ignoreCase = !excludeCaseSensitive) } ?: true
+
+            val levelMatch = levels?.let { it.contains(logLine.level.letter, ignoreCase = true) } ?: true
+
+            uidMatch && pidMatch && tidMatch && pkgMatch && tagMatch && contentMatch &&
+            uidExclude && pidExclude && tidExclude && pkgExclude && tagExclude && contentExclude &&
+            levelMatch
         }.take(limit)
 
         val sdf = SimpleDateFormat("MM-dd HH:mm:ss.SSS", Locale.getDefault())

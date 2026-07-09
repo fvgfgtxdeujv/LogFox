@@ -11,6 +11,7 @@ import com.f0x1d.logfox.core.context.makeServicePendingIntent
 import com.f0x1d.logfox.core.ui.icons.Icons
 import com.f0x1d.logfox.feature.notifications.api.MCP_SERVER_CHANNEL_ID
 import com.f0x1d.logfox.feature.strings.Strings
+import com.f0x1d.logfox.feature.preferences.api.data.ServiceSettingsRepository
 import com.f0x1d.logfox.mcp.api.McpServerManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -23,11 +24,17 @@ class McpServerService : LifecycleService() {
     companion object {
         const val ACTION_STOP_SERVER = "mcp.STOP_SERVER"
         const val DEFAULT_PORT = 8765
+        const val EXTRA_PORT = "mcp.port"
         private const val TAG = "[MCP]"
     }
 
     @Inject
     lateinit var mcpServerManager: McpServerManager
+
+    @Inject
+    lateinit var serviceSettingsRepository: ServiceSettingsRepository
+
+    private var currentPort = DEFAULT_PORT
 
     override fun onCreate() {
         super.onCreate()
@@ -35,16 +42,6 @@ class McpServerService : LifecycleService() {
 
         startForeground(1, notification())
         Timber.d("$TAG Started foreground service with notification")
-
-        lifecycleScope.launch {
-            Timber.d("$TAG Launching coroutine to start server...")
-            try {
-                mcpServerManager.start(McpServerService.DEFAULT_PORT)
-                Timber.i("$TAG Server start completed, isRunning=${mcpServerManager.isRunning}, port=${mcpServerManager.port}")
-            } catch (e: Exception) {
-                Timber.e(e, "$TAG Failed to start server")
-            }
-        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -56,15 +53,39 @@ class McpServerService : LifecycleService() {
                 Timber.i("$TAG Received stop server action, calling stopSelf()")
                 stopSelf()
             }
-            null -> Timber.d("$TAG onStartCommand with null intent")
-            else -> Timber.d("$TAG onStartCommand with unknown action: ${intent.action}")
+            null -> {
+                Timber.d("$TAG onStartCommand with null intent, starting server")
+                startServer(intent)
+            }
+            else -> {
+                Timber.d("$TAG onStartCommand with unknown action: ${intent.action}")
+                startServer(intent)
+            }
         }
 
         return START_NOT_STICKY
     }
 
+    private fun startServer(intent: Intent?) {
+        lifecycleScope.launch {
+            Timber.d("$TAG Launching coroutine to start server...")
+            try {
+                val port = intent?.getIntExtra(EXTRA_PORT, DEFAULT_PORT) 
+                    ?: serviceSettingsRepository.mcpServerPort().value
+                currentPort = port
+                mcpServerManager.start(port)
+                Timber.i("$TAG Server start completed, isRunning=${mcpServerManager.isRunning}, port=${mcpServerManager.port}")
+                startForeground(1, notification())
+            } catch (e: Exception) {
+                Timber.e(e, "$TAG Failed to start server")
+            }
+        }
+    }
+
+    
+
     private fun notification(): Notification {
-        val port = McpServerService.DEFAULT_PORT
+        val port = currentPort
         Timber.d("$TAG Building notification for port $port")
         return NotificationCompat.Builder(this, MCP_SERVER_CHANNEL_ID)
             .setContentTitle(getString(Strings.mcp_server_notification_title))

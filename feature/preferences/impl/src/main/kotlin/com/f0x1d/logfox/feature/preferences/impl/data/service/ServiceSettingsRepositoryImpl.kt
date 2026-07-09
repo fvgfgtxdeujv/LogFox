@@ -22,4 +22,6 @@ internal class ServiceSettingsRepositoryImpl @Inject constructor(
     override fun stopLoggingOnBackExit(): PreferenceStateFlow<Boolean> = localDataSource.stopLoggingOnBackExit().asPreferenceStateFlow()
 
     override fun exportLogsAsTxt(): PreferenceStateFlow<Boolean> = localDataSource.exportLogsAsTxt().asPreferenceStateFlow()
+
+    override fun mcpServerPort(): PreferenceStateFlow<Int> = localDataSource.mcpServerPort().asPreferenceStateFlow()
 }
