@@ -38,6 +38,8 @@ internal class LogsViewModel @Inject constructor(
         textSize = getLogsTextSizeUseCase(),
         logsChanged = true,
         resumeLoggingWithBottomTouch = getResumeLoggingWithBottomTouchUseCase(),
+        groupExpandStates = emptyMap(),
+        isAtBottom = true,
     ),
     reducer = reducer,
     effectHandlers = listOf(effectHandler),

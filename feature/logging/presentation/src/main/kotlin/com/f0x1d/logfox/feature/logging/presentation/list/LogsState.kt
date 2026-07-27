@@ -13,8 +13,10 @@ internal data class LogsState(
     val showLogValues: ShowLogValues,
     val selectedIds: Set<Long>,
     val expandedOverrides: Map<Long, Boolean>,
+    val groupExpandStates: Map<Long, Boolean>,
     val logsExpanded: Boolean,
     val textSize: Int,
     val logsChanged: Boolean,
     val resumeLoggingWithBottomTouch: Boolean,
+    val isAtBottom: Boolean,
 )

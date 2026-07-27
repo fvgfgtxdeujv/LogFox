@@ -12,15 +12,21 @@ abstract class BaseListAdapter<T, D : ViewBinding>(diffUtil: DiffUtil.ItemCallba
 
     protected var recyclerView: RecyclerView? = null
 
-    abstract fun createHolder(
+    open fun createHolder(
         layoutInflater: LayoutInflater,
         parent: ViewGroup,
-    ): BaseViewHolder<T, D>
+    ): BaseViewHolder<T, D> {
+        error("Override createHolder(layoutInflater, parent) or createHolder(layoutInflater, parent, viewType)")
+    }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = createHolder(
-        layoutInflater = LayoutInflater.from(parent.context),
-        parent = parent,
-    )
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BaseViewHolder<T, D> =
+        createHolder(LayoutInflater.from(parent.context), parent, viewType)
+
+    open fun createHolder(
+        layoutInflater: LayoutInflater,
+        parent: ViewGroup,
+        viewType: Int,
+    ): BaseViewHolder<T, D> = createHolder(layoutInflater, parent)
 
     override fun onBindViewHolder(holder: BaseViewHolder<T, D>, position: Int) = holder.bindTo(getItem(position))
 

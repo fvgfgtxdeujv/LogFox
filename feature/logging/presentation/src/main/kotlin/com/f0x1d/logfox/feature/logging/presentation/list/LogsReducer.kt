@@ -233,6 +233,36 @@ internal class LogsReducer @Inject constructor() : Reducer<LogsState, LogsComman
         is LogsCommand.KillService -> {
             state.withSideEffects(LogsSideEffect.KillService)
         }
+
+        is LogsCommand.GroupToggled -> {
+            val current = state.groupExpandStates[command.groupId] ?: false
+            state.copy(
+                groupExpandStates = state.groupExpandStates + (command.groupId to !current),
+                logsChanged = true,
+            ).noSideEffects()
+        }
+
+        is LogsCommand.ExpandAllGroups -> {
+            state.copy(
+                groupExpandStates = emptyMap(),
+                logsChanged = true,
+            ).noSideEffects()
+        }
+
+        is LogsCommand.CollapseAllGroups -> {
+            state.copy(
+                groupExpandStates = state.groupExpandStates.mapValues { false },
+                logsChanged = true,
+            ).noSideEffects()
+        }
+
+        is LogsCommand.ScrollStateChanged -> {
+            if (state.isAtBottom != command.isAtBottom) {
+                state.copy(isAtBottom = command.isAtBottom).noSideEffects()
+            } else {
+                state.noSideEffects()
+            }
+        }
     }
 
     private fun LogsState.selectedLines(): List<LogLine> =

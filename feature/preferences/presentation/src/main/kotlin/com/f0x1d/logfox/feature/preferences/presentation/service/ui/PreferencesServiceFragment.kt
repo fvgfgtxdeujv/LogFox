@@ -27,6 +27,7 @@ import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import dev.chrisbanes.insetter.applyInsetter
+import javax.inject.Inject
 
 @AndroidEntryPoint
 internal class PreferencesServiceFragment :

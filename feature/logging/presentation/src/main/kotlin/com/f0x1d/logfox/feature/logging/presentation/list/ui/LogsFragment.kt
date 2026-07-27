@@ -26,8 +26,10 @@ import com.f0x1d.logfox.feature.logging.presentation.list.LogsSideEffect
 import com.f0x1d.logfox.feature.logging.presentation.list.LogsState
 import com.f0x1d.logfox.feature.logging.presentation.list.LogsViewModel
 import com.f0x1d.logfox.feature.logging.presentation.list.LogsViewState
+import com.f0x1d.logfox.feature.logging.presentation.list.ScrollFabIcon
 import com.f0x1d.logfox.feature.logging.presentation.list.adapter.LogsAdapter
 import com.f0x1d.logfox.feature.logging.presentation.list.model.LogLineItem
+import com.f0x1d.logfox.feature.logging.presentation.list.model.LogListItem
 import com.f0x1d.logfox.feature.navigation.api.Directions
 import com.f0x1d.logfox.feature.strings.Plurals
 import com.f0x1d.logfox.feature.strings.Strings
@@ -52,6 +54,9 @@ internal class LogsFragment :
         LogsAdapter(
             onClick = { item ->
                 send(LogsCommand.ItemClicked(item.logLineId))
+            },
+            onGroupClick = { groupId ->
+                send(LogsCommand.GroupToggled(groupId))
             },
             onSelectClick = { item ->
                 send(LogsCommand.SelectLine(item.logLineId, true))
@@ -104,7 +109,9 @@ internal class LogsFragment :
                 send(LogsCommand.SwitchState)
             }
             setClickListenerOn(R.id.select_all_item) {
-                val visibleIds = adapter.currentList.mapTo(mutableSetOf()) { it.logLineId }
+                val visibleIds = adapter.currentList.mapNotNull {
+                    (it as? LogListItem.Item)?.data?.logLineId
+                }.toMutableSet()
                 send(LogsCommand.SelectAll(visibleIds))
             }
             setClickListenerOn(R.id.search_item) {
@@ -145,7 +152,9 @@ internal class LogsFragment :
 
         logsRecycler.layoutManager = LinearLayoutManager(requireContext())
         logsRecycler.itemAnimator = null
-        logsRecycler.recycledViewPool.setMaxRecycledViews(0, 50)
+        logsRecycler.setItemViewCacheSize(20)
+        logsRecycler.recycledViewPool.setMaxRecycledViews(LogsAdapter.VIEW_TYPE_ITEM, 50)
+        logsRecycler.recycledViewPool.setMaxRecycledViews(LogsAdapter.VIEW_TYPE_GROUP, 10)
         logsRecycler.adapter = adapter
         logsRecycler.addOnScrollListener(
             object : RecyclerView.OnScrollListener() {
@@ -158,6 +167,11 @@ internal class LogsFragment :
                         send(LogsCommand.Pause)
                     }
                 }
+
+                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                    val canScrollDown = recyclerView.canScrollVertically(1)
+                    send(LogsCommand.ScrollStateChanged(isAtBottom = !canScrollDown))
+                }
             },
         )
 
@@ -165,7 +179,14 @@ internal class LogsFragment :
             if (viewModel.state.value.resumeLoggingWithBottomTouch) {
                 send(LogsCommand.Resume)
             } else {
-                scrollLogToBottom()
+                val canScrollDown = logsRecycler.canScrollVertically(1)
+                if (canScrollDown) {
+                    scrollLogToBottom()
+                } else {
+                    logsRecycler.stopScroll()
+                    logsRecycler.smoothScrollToPosition(0)
+                    scrollFab.setImageResource(R.drawable.ic_arrow_drop_down)
+                }
             }
         }
 
@@ -184,10 +205,11 @@ internal class LogsFragment :
             selectedCount = state.selectedCount,
         )
         binding.processPaused(paused = state.paused)
+        binding.processFAB(state)
 
         if (state.logsChanged) {
             binding.updateLogsList(
-                items = state.logs,
+                items = state.items,
                 paused = state.paused,
             )
         }
@@ -295,11 +317,28 @@ internal class LogsFragment :
         toolbar.menu.findItem(R.id.pause_item)
             .setIcon(if (paused) Icons.ic_play else Icons.ic_pause)
             .setTitle(if (paused) Strings.resume else Strings.pause)
+    }
 
-        if (paused) {
-            scrollFab.show()
-        } else {
+    private fun FragmentLogsBinding.processFAB(state: LogsViewState) {
+        if (!state.paused && state.items.size < 10) {
             scrollFab.hide()
+            return
+        }
+        if (state.resumeLoggingWithBottomTouch) {
+            return
+        }
+        when (state.scrollFabIcon) {
+            ScrollFabIcon.HIDDEN -> scrollFab.hide()
+            ScrollFabIcon.SCROLL_DOWN -> {
+                scrollFab.show()
+                scrollFab.setImageResource(R.drawable.ic_arrow_drop_down)
+                scrollFab.contentDescription = getString(Strings.scroll_to_bottom)
+            }
+            ScrollFabIcon.SCROLL_UP -> {
+                scrollFab.show()
+                scrollFab.setImageResource(R.drawable.ic_arrow_drop_up)
+                scrollFab.contentDescription = getString(Strings.scroll_to_top)
+            }
         }
     }
 
@@ -346,7 +385,7 @@ internal class LogsFragment :
     }
 
     private fun FragmentLogsBinding.updateLogsList(
-        items: List<LogLineItem>,
+        items: List<LogListItem>,
         paused: Boolean,
     ) {
         placeholderLayout.root.apply {

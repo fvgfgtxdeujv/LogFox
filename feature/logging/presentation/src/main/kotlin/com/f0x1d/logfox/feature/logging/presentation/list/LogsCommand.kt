@@ -69,4 +69,12 @@ internal sealed interface LogsCommand {
     data object RestartLogging : LogsCommand
 
     data object KillService : LogsCommand
+
+    data class GroupToggled(val groupId: Long) : LogsCommand
+
+    data object ExpandAllGroups : LogsCommand
+
+    data object CollapseAllGroups : LogsCommand
+
+    data class ScrollStateChanged(val isAtBottom: Boolean) : LogsCommand
 }

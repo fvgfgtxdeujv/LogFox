@@ -17,19 +17,29 @@ internal class LogsViewStateMapper @Inject constructor(
             caseSensitive = state.caseSensitive,
         )
 
+        val lineItems = filteredLogs.map { line ->
+            line.toPresentationModel(
+                displayText = line.formatOriginal(
+                    values = state.showLogValues,
+                    formatDate = dateTimeFormatter::formatDate,
+                    formatTime = dateTimeFormatter::formatTime,
+                ),
+                expanded = state.expandedOverrides.getOrElse(line.id) { state.logsExpanded },
+                selected = line.id in state.selectedIds,
+                textSize = state.textSize.toFloat(),
+            )
+        }
+
+        val groupedItems = LogGrouper.group(lineItems, state.groupExpandStates)
+
+        val scrollFabIcon = when {
+            !state.paused && groupedItems.size < 10 -> ScrollFabIcon.HIDDEN
+            state.isAtBottom -> ScrollFabIcon.SCROLL_UP
+            else -> ScrollFabIcon.SCROLL_DOWN
+        }
+
         return LogsViewState(
-            logs = filteredLogs.map { line ->
-                line.toPresentationModel(
-                    displayText = line.formatOriginal(
-                        values = state.showLogValues,
-                        formatDate = dateTimeFormatter::formatDate,
-                        formatTime = dateTimeFormatter::formatTime,
-                    ),
-                    expanded = state.expandedOverrides.getOrElse(line.id) { state.logsExpanded },
-                    selected = line.id in state.selectedIds,
-                    textSize = state.textSize.toFloat(),
-                )
-            },
+            items = groupedItems,
             logsChanged = state.logsChanged,
             paused = state.paused,
             query = state.query,
@@ -37,6 +47,7 @@ internal class LogsViewStateMapper @Inject constructor(
             selecting = state.selectedIds.isNotEmpty(),
             selectedCount = state.selectedIds.size,
             resumeLoggingWithBottomTouch = state.resumeLoggingWithBottomTouch,
+            scrollFabIcon = scrollFabIcon,
         )
     }
 }

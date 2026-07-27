@@ -1,6 +1,7 @@
 package com.f0x1d.logfox.feature.preferences.presentation.menu
 
 import android.content.Context
+import androidx.core.content.pm.PackageInfoCompat
 import com.f0x1d.logfox.core.tea.BaseStoreViewModel
 import com.f0x1d.logfox.feature.preferences.presentation.BuildConfig
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -18,7 +19,7 @@ internal class PreferencesMenuViewModel @Inject constructor(
         val packageInfo = packageManager.getPackageInfo(context.packageName, 0)
         PreferencesMenuState(
             versionName = packageInfo.versionName ?: "",
-            versionCode = packageInfo.versionCode,
+            versionCode = PackageInfoCompat.getLongVersionCode(packageInfo),
             isDebug = BuildConfig.DEBUG,
         )
     },
