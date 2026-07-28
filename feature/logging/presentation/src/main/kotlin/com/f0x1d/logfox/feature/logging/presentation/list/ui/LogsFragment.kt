@@ -67,6 +67,18 @@ internal class LogsFragment :
             onCreateFilterClick = { item ->
                 send(LogsCommand.CreateFilterFromLog(item.logLineId))
             },
+            onGroupSelectClick = { group ->
+                group.children.forEach { child ->
+                    send(LogsCommand.SelectLine(child.logLineId, true))
+                }
+            },
+            onGroupCopyClick = { group ->
+                val text = group.children.joinToString("\n") { it.content }
+                requireContext().copyText(text)
+            },
+            onGroupCreateFilterClick = { group ->
+                send(LogsCommand.CreateFilterFromLog(group.header.logLineId))
+            },
         )
     }
 
@@ -109,8 +121,11 @@ internal class LogsFragment :
                 send(LogsCommand.SwitchState)
             }
             setClickListenerOn(R.id.select_all_item) {
-                val visibleIds = adapter.currentList.mapNotNull {
-                    (it as? LogListItem.Item)?.data?.logLineId
+                val visibleIds = adapter.currentList.flatMap {
+                    when (it) {
+                        is LogListItem.Item -> listOf(it.data.logLineId)
+                        is LogListItem.Group -> it.children.map { child -> child.logLineId }
+                    }
                 }.toMutableSet()
                 send(LogsCommand.SelectAll(visibleIds))
             }
@@ -137,6 +152,12 @@ internal class LogsFragment :
             }
             setClickListenerOn(R.id.clear_item) {
                 send(LogsCommand.ClearLogs)
+            }
+            setClickListenerOn(R.id.expand_all_item) {
+                send(LogsCommand.ExpandAllGroups)
+            }
+            setClickListenerOn(R.id.collapse_all_item) {
+                send(LogsCommand.CollapseAllGroups)
             }
             setClickListenerOn(R.id.restart_logging_item) {
                 send(LogsCommand.RestartLogging)
@@ -211,6 +232,7 @@ internal class LogsFragment :
             binding.updateLogsList(
                 items = state.items,
                 paused = state.paused,
+                hasActiveQuery = !state.query.isNullOrEmpty(),
             )
         }
     }
@@ -321,25 +343,36 @@ internal class LogsFragment :
 
     private fun FragmentLogsBinding.processFAB(state: LogsViewState) {
         if (!state.paused && state.items.size < 10) {
-            scrollFab.hide()
+            animateFAB(visible = false)
             return
         }
         if (state.resumeLoggingWithBottomTouch) {
             return
         }
         when (state.scrollFabIcon) {
-            ScrollFabIcon.HIDDEN -> scrollFab.hide()
+            ScrollFabIcon.HIDDEN -> animateFAB(visible = false)
             ScrollFabIcon.SCROLL_DOWN -> {
-                scrollFab.show()
                 scrollFab.setImageResource(R.drawable.ic_arrow_drop_down)
                 scrollFab.contentDescription = getString(Strings.scroll_to_bottom)
+                animateFAB(visible = true)
             }
             ScrollFabIcon.SCROLL_UP -> {
-                scrollFab.show()
                 scrollFab.setImageResource(R.drawable.ic_arrow_drop_up)
                 scrollFab.contentDescription = getString(Strings.scroll_to_top)
+                animateFAB(visible = true)
             }
         }
+    }
+
+    private fun FragmentLogsBinding.animateFAB(visible: Boolean) {
+        if (visible && scrollFab.scaleX == 1f) return
+        if (!visible && scrollFab.scaleX == 0f) return
+        scrollFab.animate()
+            .setDuration(200)
+            .scaleX(if (visible) 1f else 0f)
+            .scaleY(if (visible) 1f else 0f)
+            .alpha(if (visible) 1f else 0f)
+            .start()
     }
 
     private fun FragmentLogsBinding.setupToolbarForSelection(
@@ -387,6 +420,7 @@ internal class LogsFragment :
     private fun FragmentLogsBinding.updateLogsList(
         items: List<LogListItem>,
         paused: Boolean,
+        hasActiveQuery: Boolean = false,
     ) {
         placeholderLayout.root.apply {
             if (items.isEmpty()) {
@@ -405,10 +439,17 @@ internal class LogsFragment :
 
         adapter.submitList(null)
         adapter.submitList(items) {
-            if (paused) {
-                layoutManager.onRestoreInstanceState(savedState)
-            } else {
-                scrollLogToBottom()
+            when {
+                hasActiveQuery && items.isNotEmpty() -> {
+                    logsRecycler.stopScroll()
+                    logsRecycler.scrollToPosition(0)
+                }
+                paused -> {
+                    layoutManager.onRestoreInstanceState(savedState)
+                }
+                else -> {
+                    scrollLogToBottom()
+                }
             }
         }
     }

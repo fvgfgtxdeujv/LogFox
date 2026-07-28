@@ -65,6 +65,15 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/expand_all_item"
+        android:title="@string/expand_all_groups"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/collapse_all_item"
+        android:title="@string/collapse_all_groups"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/restart_logging_item"
         android:title="@string/restart_logging"
         app:showAsAction="never" />

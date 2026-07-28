@@ -10,6 +10,7 @@ internal object LogGrouper {
     fun group(
         items: List<LogLineItem>,
         groupExpandStates: Map<Long, Boolean>,
+        allGroupsExpanded: Boolean,
         maxGroupSize: Int = DEFAULT_MAX_GROUP_SIZE,
     ): List<LogListItem> {
         if (items.isEmpty()) return emptyList()
@@ -33,7 +34,7 @@ internal object LogGrouper {
                     LogListItem.Group(
                         header = current,
                         children = children,
-                        expanded = groupExpandStates[current.logLineId] ?: false,
+                        expanded = groupExpandStates[current.logLineId] ?: allGroupsExpanded,
                         count = count,
                         maxLevel = maxLevel,
                     ),

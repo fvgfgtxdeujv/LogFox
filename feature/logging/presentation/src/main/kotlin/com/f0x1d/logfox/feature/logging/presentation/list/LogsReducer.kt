@@ -235,7 +235,8 @@ internal class LogsReducer @Inject constructor() : Reducer<LogsState, LogsComman
         }
 
         is LogsCommand.GroupToggled -> {
-            val current = state.groupExpandStates[command.groupId] ?: false
+            val current = state.groupExpandStates[command.groupId]
+                ?: state.allGroupsExpanded
             state.copy(
                 groupExpandStates = state.groupExpandStates + (command.groupId to !current),
                 logsChanged = true,
@@ -245,13 +246,15 @@ internal class LogsReducer @Inject constructor() : Reducer<LogsState, LogsComman
         is LogsCommand.ExpandAllGroups -> {
             state.copy(
                 groupExpandStates = emptyMap(),
+                allGroupsExpanded = true,
                 logsChanged = true,
             ).noSideEffects()
         }
 
         is LogsCommand.CollapseAllGroups -> {
             state.copy(
-                groupExpandStates = state.groupExpandStates.mapValues { false },
+                groupExpandStates = emptyMap(),
+                allGroupsExpanded = false,
                 logsChanged = true,
             ).noSideEffects()
         }

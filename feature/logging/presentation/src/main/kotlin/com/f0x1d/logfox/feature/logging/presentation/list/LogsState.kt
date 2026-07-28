@@ -14,6 +14,7 @@ internal data class LogsState(
     val selectedIds: Set<Long>,
     val expandedOverrides: Map<Long, Boolean>,
     val groupExpandStates: Map<Long, Boolean>,
+    val allGroupsExpanded: Boolean,
     val logsExpanded: Boolean,
     val textSize: Int,
     val logsChanged: Boolean,

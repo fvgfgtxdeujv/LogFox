@@ -39,6 +39,7 @@ internal class LogsViewModel @Inject constructor(
         logsChanged = true,
         resumeLoggingWithBottomTouch = getResumeLoggingWithBottomTouchUseCase(),
         groupExpandStates = emptyMap(),
+        allGroupsExpanded = false,
         isAtBottom = true,
     ),
     reducer = reducer,

@@ -30,7 +30,12 @@ internal class LogsViewStateMapper @Inject constructor(
             )
         }
 
-        val groupedItems = LogGrouper.group(lineItems, state.groupExpandStates)
+        val hasActiveQuery = !state.query.isNullOrEmpty()
+        val groupedItems = LogGrouper.group(
+            lineItems,
+            state.groupExpandStates,
+            state.allGroupsExpanded || hasActiveQuery,
+        )
 
         val scrollFabIcon = when {
             !state.paused && groupedItems.size < 10 -> ScrollFabIcon.HIDDEN

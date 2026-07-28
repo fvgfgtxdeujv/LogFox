@@ -19,6 +19,9 @@ class LogsAdapter(
     private val onSelectClick: (LogLineItem) -> Unit,
     private val onCopyClick: (LogLineItem) -> Unit,
     private val onCreateFilterClick: (LogLineItem) -> Unit,
+    private val onGroupSelectClick: (LogListItem.Group) -> Unit,
+    private val onGroupCopyClick: (LogListItem.Group) -> Unit,
+    private val onGroupCreateFilterClick: (LogListItem.Group) -> Unit,
 ) : BaseListAdapter<LogListItem, androidx.viewbinding.ViewBinding>(
     object : DiffUtil.ItemCallback<LogListItem>() {
         override fun areItemsTheSame(oldItem: LogListItem, newItem: LogListItem): Boolean = when {
@@ -78,6 +81,9 @@ class LogsAdapter(
                 GroupViewHolder(
                     binding = groupBinding,
                     onGroupClick = onGroupClick,
+                    onSelectClick = onGroupSelectClick,
+                    onCopyClick = onGroupCopyClick,
+                    onCreateFilterClick = onGroupCreateFilterClick,
                 ) as com.f0x1d.logfox.core.recycler.viewholder.BaseViewHolder<LogListItem, androidx.viewbinding.ViewBinding>
             }
 
