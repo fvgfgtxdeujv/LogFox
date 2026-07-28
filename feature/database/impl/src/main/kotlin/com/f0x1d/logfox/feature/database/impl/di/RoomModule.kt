@@ -3,9 +3,12 @@ package com.f0x1d.logfox.feature.database.impl.di
 import android.content.Context
 import androidx.room.Room
 import com.f0x1d.logfox.feature.database.impl.AppDatabase
+import com.f0x1d.logfox.feature.database.impl.data.dao.AlertRuleDao
 import com.f0x1d.logfox.feature.database.impl.data.dao.AppCrashDao
 import com.f0x1d.logfox.feature.database.impl.data.dao.DisabledAppDao
 import com.f0x1d.logfox.feature.database.impl.data.dao.LogRecordingDao
+import com.f0x1d.logfox.feature.database.impl.data.dao.LogTagDao
+import com.f0x1d.logfox.feature.database.impl.data.dao.QueryHistoryDao
 import com.f0x1d.logfox.feature.database.impl.data.dao.UserFilterDao
 import dagger.Module
 import dagger.Provides
@@ -46,4 +49,13 @@ internal object RoomModule {
 
     @Provides
     fun provideDisabledAppDao(database: AppDatabase): DisabledAppDao = database.disabledApps()
+
+    @Provides
+    fun provideQueryHistoryDao(database: AppDatabase): QueryHistoryDao = database.queryHistory()
+
+    @Provides
+    fun provideAlertRuleDao(database: AppDatabase): AlertRuleDao = database.alertRules()
+
+    @Provides
+    fun provideLogTagDao(database: AppDatabase): LogTagDao = database.logTags()
 }
