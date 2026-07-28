@@ -5,7 +5,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "AlertRule")
-internal data class AlertRuleRoomEntity(
+data class AlertRuleRoomEntity(
     @ColumnInfo(name = "name") val name: String,
     @ColumnInfo(name = "type") val type: String,
     @ColumnInfo(name = "keyword") val keyword: String? = null,

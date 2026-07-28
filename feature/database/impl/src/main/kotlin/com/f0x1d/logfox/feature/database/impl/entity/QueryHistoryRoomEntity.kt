@@ -5,7 +5,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "QueryHistory")
-internal data class QueryHistoryRoomEntity(
+data class QueryHistoryRoomEntity(
     @ColumnInfo(name = "name") val name: String,
     @ColumnInfo(name = "query") val query: String,
     @ColumnInfo(name = "created_at") val createdAt: Long,

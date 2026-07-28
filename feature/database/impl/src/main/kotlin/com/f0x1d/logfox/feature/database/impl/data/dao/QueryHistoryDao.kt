@@ -8,7 +8,7 @@ import com.f0x1d.logfox.feature.database.impl.entity.QueryHistoryRoomEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-internal interface QueryHistoryDao {
+interface QueryHistoryDao {
 
     @Query("SELECT * FROM QueryHistory ORDER BY created_at DESC")
     fun getAllAsFlow(): Flow<List<QueryHistoryRoomEntity>>

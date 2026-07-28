@@ -5,7 +5,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "LogTag")
-internal data class LogTagRoomEntity(
+data class LogTagRoomEntity(
     @ColumnInfo(name = "log_id") val logId: Long,
     @ColumnInfo(name = "tag") val tag: String,
     @ColumnInfo(name = "created_at") val createdAt: Long,

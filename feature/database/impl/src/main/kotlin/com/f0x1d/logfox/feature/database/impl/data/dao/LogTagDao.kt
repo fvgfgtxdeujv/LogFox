@@ -8,7 +8,7 @@ import com.f0x1d.logfox.feature.database.impl.entity.LogTagRoomEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-internal interface LogTagDao {
+interface LogTagDao {
 
     @Query("SELECT * FROM LogTag ORDER BY created_at DESC")
     fun getAllAsFlow(): Flow<List<LogTagRoomEntity>>

@@ -25,7 +25,7 @@ import com.f0x1d.logfox.feature.logging.api.model.LogLevel
 import com.f0x1d.logfox.mcp.api.model.BatchRequest
 import com.f0x1d.logfox.mcp.api.model.SearchRequest
 import com.f0x1d.logfox.mcp.api.model.SearchResponse
-import com.f0x1d.logfox.mcp.impl.auth.AuthConfig
+import com.f0x1d.logfox.mcp.api.AuthConfig
 import com.f0x1d.logfox.mcp.impl.tools.ClearLogsTool
 import com.f0x1d.logfox.mcp.impl.websocket.McpWebSocketHandler
 import com.f0x1d.logfox.mcp.impl.websocket.McpWebSocketSession
@@ -48,6 +48,7 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.websocket.WebSockets
 import io.ktor.server.websocket.webSocket
 import io.ktor.websocket.Frame
+import io.ktor.websocket.readText
 import io.ktor.server.request.receive
 import io.ktor.server.request.receiveText
 import io.ktor.server.request.uri
@@ -55,7 +56,10 @@ import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.response.respondTextWriter
 import io.ktor.server.routing.get
+import io.ktor.server.routing.delete
 import io.ktor.server.routing.post
+import io.ktor.server.routing.put
+import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -65,17 +69,24 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonNull
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
 import kotlinx.serialization.json.put
-import kotlinx.serialization.json.putJsonArray
 import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class McpRoutes(private val json: Json) {
+internal class McpRoutes(private val json: Json) {
 
     private companion object {
         private const val TAG = "[MCP]"
@@ -235,11 +246,11 @@ class McpRoutes(private val json: Json) {
 
                     val response = buildJsonObject {
                         put("total", filtered.size)
-                        putJsonObject("levels") {
+                        put("levels", buildJsonObject {
                             levelCounts.forEach { (level, count) ->
                                 put(level, count)
                             }
-                        }
+                        })
                         put("lastUpdated", lastUpdated)
                     }
 
@@ -295,7 +306,7 @@ class McpRoutes(private val json: Json) {
                         val tagExclude = excludeTag?.let { !logLine.tag.contains(it, ignoreCase = !excludeCaseSensitive) } ?: true
                         val contentExclude = excludeContent?.let { !logLine.content.contains(it, ignoreCase = !excludeCaseSensitive) } ?: true
 
-                        val levelMatch = levels?.let { it.contains(logLine.level.letter, ignoreCase = true) } ?: true
+                        val levelMatch = levels?.let { lvls -> lvls.any { it.equals(logLine.level.letter, ignoreCase = true) } } ?: true
 
                         uidMatch && pidMatch && tidMatch && pkgMatch && tagMatch && contentMatch &&
                         uidExclude && pidExclude && tidExclude && pkgExclude && tagExclude && contentExclude &&
@@ -327,7 +338,7 @@ class McpRoutes(private val json: Json) {
                                     }
                                     Timber.d("$TAG Batch export completed: $lineCount logs, format=csv")
                                     call.response.headers.append(HttpHeaders.ContentDisposition, "attachment; filename=\"logs_${System.currentTimeMillis()}.csv\"")
-                                    call.respondText(content, contentType = ContentType.Text.Csv)
+                                    call.respondText(content, contentType = ContentType("text", "csv"))
                                 }
                                 "xml" -> {
                                     val content = buildString {
@@ -362,7 +373,7 @@ class McpRoutes(private val json: Json) {
                                     val fileSize = content.toByteArray().size
                                     Timber.d("$TAG Batch export completed: $lineCount logs, $fileSize bytes, format=txt")
                                     call.response.headers.append(HttpHeaders.ContentDisposition, "attachment; filename=\"logs_${System.currentTimeMillis()}.txt\"")
-                                    call.respondText(content, contentType = ContentType.Text.Plain)
+                                    call.respondText(content, contentType = ContentType("text", "csv"))
                                 }
                             }
                         }
@@ -422,7 +433,7 @@ class McpRoutes(private val json: Json) {
                         val tagExclude = excludeTag?.let { !logLine.tag.contains(it, ignoreCase = !excludeCaseSensitive) } ?: true
                         val contentExclude = excludeContent?.let { !logLine.content.contains(it, ignoreCase = !excludeCaseSensitive) } ?: true
 
-                        val levelMatch = levels?.let { it.contains(logLine.level.letter, ignoreCase = true) } ?: true
+                        val levelMatch = levels?.let { lvls -> lvls.any { it.equals(logLine.level.letter, ignoreCase = true) } } ?: true
 
                         uidMatch && pidMatch && tidMatch && pkgMatch && tagMatch && contentMatch &&
                         uidExclude && pidExclude && tidExclude && pkgExclude && tagExclude && contentExclude &&
@@ -443,7 +454,7 @@ class McpRoutes(private val json: Json) {
                                 }
                             }
                             call.response.headers.append(HttpHeaders.ContentDisposition, "attachment; filename=\"logs_search_${System.currentTimeMillis()}.csv\"")
-                            call.respondText(csvContent, contentType = ContentType.Text.Csv)
+                            call.respondText(csvContent, contentType = ContentType("text", "csv"))
                         }
                         "xml" -> {
                             val xmlContent = buildString {
@@ -531,7 +542,7 @@ class McpRoutes(private val json: Json) {
                         val tagExclude = excludeTag?.let { !logLine.tag.contains(it, ignoreCase = !excludeCaseSensitive) } ?: true
                         val contentExclude = excludeContent?.let { !logLine.content.contains(it, ignoreCase = !excludeCaseSensitive) } ?: true
 
-                        val levelMatch = levels?.let { it.contains(logLine.level.letter, ignoreCase = true) } ?: true
+                        val levelMatch = levels?.let { lvls -> lvls.any { it.equals(logLine.level.letter, ignoreCase = true) } } ?: true
 
                         uidMatch && pidMatch && tidMatch && pkgMatch && tagMatch && contentMatch &&
                         uidExclude && pidExclude && tidExclude && pkgExclude && tagExclude && contentExclude &&
@@ -553,7 +564,7 @@ class McpRoutes(private val json: Json) {
                     )
                     call.respondText(
                         text = content,
-                        contentType = ContentType.Text.Plain,
+                        contentType = ContentType("text", "csv"),
                         status = HttpStatusCode.OK,
                     )
                 } catch (e: Exception) {
@@ -602,7 +613,7 @@ class McpRoutes(private val json: Json) {
                             put("name", filter.name ?: "")
                             put("including", filter.including)
                             put("enabled", filter.enabled)
-                            put("query", buildQueryFromFilter(filter))
+                            put("query", filter.content ?: "")
                         }
                     }
                     call.respond(mapOf("filters" to filterObjects, "count" to filters.size))
@@ -762,10 +773,10 @@ class McpRoutes(private val json: Json) {
                                                 put("name", "LogFox MCP Server")
                                                 put("version", "1.0.0")
                                                 put("description", "LogCat reader MCP server for Android")
-                                                putJsonArray("protocolVersions") {
+                                                put("protocolVersions", buildJsonArray {
                                                     add("2025-11-25")
                                                     add("2026-07-28")
-                                                }
+                                                })
                                                 put("capabilities", buildJsonObject {
                                                     put("tools", buildJsonObject {})
                                                 })
@@ -792,7 +803,11 @@ class McpRoutes(private val json: Json) {
                                             put("jsonrpc", "2.0")
                                             put("id", id)
                                             put("result", buildJsonObject {
-                                                putJsonArray("tools") { toolList.forEach { add(it) } }
+                                                put("tools", buildJsonArray {
+                                                    toolList.forEach { tool ->
+                                                        add(tool)
+                                                    }
+                                                })
                                             })
                                         },
                                     ),
@@ -837,7 +852,7 @@ class McpRoutes(private val json: Json) {
                                                     put("id", id)
                                                     put("result", buildJsonObject {
                                                         put("resultType", "complete")
-                                                        putJsonArray("content") {
+                                                        put("content", buildJsonArray {
                                                             result.content.forEach { block ->
                                                                 add(
                                                                     buildJsonObject {
@@ -847,7 +862,7 @@ class McpRoutes(private val json: Json) {
                                                                     },
                                                                 )
                                                             }
-                                                        }
+                                                        })
                                                     })
                                                 },
                                             ),
@@ -921,7 +936,7 @@ class McpRoutes(private val json: Json) {
                     put("server", "LogFox MCP Server")
                     put("port", 8765)
                     put("description", "LogFox MCP Server API documentation")
-                    putJsonArray("endpoints") {
+                    put("endpoints", buildJsonArray {
                         add(buildJsonObject {
                             put("path", "/logs")
                             put("method", "GET")
@@ -1050,8 +1065,8 @@ class McpRoutes(private val json: Json) {
                             put("description", "WebSocket 实时通信端点，支持日志推送和命令发送")
                             put("example", "wscat -c ws://localhost:8765/ws")
                         })
-                    }
-                    putJsonArray("tools") {
+                    })
+                    put("tools", buildJsonArray {
                         add(buildJsonObject {
                             put("name", "read_logs")
                             put("description", "读取日志流")
@@ -1087,7 +1102,7 @@ class McpRoutes(private val json: Json) {
                             put("description", "获取过滤器")
                             put("params", "无")
                         })
-                    }
+                    })
                 }
                 call.respond(helpDoc)
             }
@@ -1113,7 +1128,7 @@ class McpRoutes(private val json: Json) {
                 try {
                     val histories = queryHistoryDao?.getAll() ?: emptyList()
                     val response = buildJsonObject {
-                        putJsonArray("items") {
+                        put("items", buildJsonArray {
                             histories.forEach { item ->
                                 add(
                                     buildJsonObject {
@@ -1124,7 +1139,7 @@ class McpRoutes(private val json: Json) {
                                     }
                                 )
                             }
-                        }
+                        })
                         put("total", histories.size)
                     }
                     call.respond(response)
@@ -1190,7 +1205,7 @@ class McpRoutes(private val json: Json) {
                 try {
                     val rules = alertRuleDao?.getAll() ?: emptyList()
                     val response = buildJsonObject {
-                        putJsonArray("rules") {
+                        put("rules", buildJsonArray {
                             rules.forEach { rule ->
                                 add(
                                     buildJsonObject {
@@ -1204,7 +1219,7 @@ class McpRoutes(private val json: Json) {
                                     }
                                 )
                             }
-                        }
+                        })
                         put("total", rules.size)
                     }
                     call.respond(response)
@@ -1281,9 +1296,9 @@ class McpRoutes(private val json: Json) {
                 try {
                     val tags = logTagDao?.getAllTags() ?: emptyList()
                     val response = buildJsonObject {
-                        putJsonArray("tags") {
+                        put("tags", buildJsonArray {
                             tags.forEach { add(it) }
-                        }
+                        })
                         put("total", tags.size)
                     }
                     call.respond(response)
@@ -1391,10 +1406,10 @@ class McpRoutes(private val json: Json) {
                             put("name", "LogFox MCP Server")
                             put("version", "1.0.0")
                             put("description", "LogCat reader MCP server for Android")
-                            putJsonArray("protocolVersions") {
+                            put("protocolVersions", buildJsonArray {
                                 add("2025-11-25")
                                 add("2026-07-28")
-                            }
+                            })
                             put("capabilities", buildJsonObject {
                                 put("tools", buildJsonObject {})
                             })
@@ -1428,9 +1443,9 @@ class McpRoutes(private val json: Json) {
                         put("jsonrpc", "2.0")
                         put("id", 0)
                         put("result", buildJsonObject {
-                            putJsonArray("tools") {
+                            put("tools", buildJsonArray {
                                 toolList.forEach { add(it) }
-                            }
+                            })
                         })
                     }
 
@@ -1465,9 +1480,9 @@ class McpRoutes(private val json: Json) {
                         put("jsonrpc", "2.0")
                         put("id", id)
                         put("result", buildJsonObject {
-                            putJsonArray("tools") {
+                            put("tools", buildJsonArray {
                                 toolList.forEach { add(it) }
-                            }
+                            })
                         })
                     }
 
@@ -1530,7 +1545,7 @@ class McpRoutes(private val json: Json) {
                                             put("id", id)
                                             put("result", buildJsonObject {
                                                 put("resultType", "complete")
-                                                putJsonArray("content") {
+                                                put("content", buildJsonArray {
                                                     result.content.forEach { block ->
                                                         add(
                                                             buildJsonObject {
@@ -1540,7 +1555,7 @@ class McpRoutes(private val json: Json) {
                                                             },
                                                         )
                                                     }
-                                                }
+                                                })
                                             })
                                         },
                                     ),

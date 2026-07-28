@@ -17,7 +17,6 @@ import com.f0x1d.logfox.feature.recordings.api.domain.StartRecordingUseCase
 import com.f0x1d.logfox.feature.terminals.api.domain.GetSelectedTerminalUseCase
 import com.f0x1d.logfox.mcp.api.McpServerManager
 import com.f0x1d.logfox.mcp.api.McpTool
-import com.f0x1d.logfox.mcp.impl.auth.AuthConfig
 import com.f0x1d.logfox.mcp.impl.tools.ClearLogsTool
 import com.f0x1d.logfox.mcp.impl.tools.ExportLogsTool
 import com.f0x1d.logfox.mcp.impl.tools.GetFiltersTool
@@ -60,7 +59,7 @@ class McpServerManagerImpl @Inject constructor(
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    private var authConfig = AuthConfig(enabled = false, apiKey = null)
+    private var authConfigState = com.f0x1d.logfox.mcp.api.AuthConfig(enabled = false, apiKey = null)
 
     private val webSocketHandler: McpWebSocketHandler by lazy {
         McpWebSocketHandler(
@@ -72,7 +71,7 @@ class McpServerManagerImpl @Inject constructor(
     }
 
     fun setAuthConfig(enabled: Boolean, apiKey: String?) {
-        authConfig = AuthConfig(enabled = enabled, apiKey = apiKey)
+        authConfigState = com.f0x1d.logfox.mcp.api.AuthConfig(enabled = enabled, apiKey = apiKey)
         Timber.d("$TAG Auth config updated: enabled=$enabled, hasKey=${apiKey != null}")
     }
 
@@ -159,7 +158,7 @@ class McpServerManagerImpl @Inject constructor(
                     endRecordingUseCase = endRecordingUseCase,
                     getAllRecordingsFlowUseCase = getAllRecordingsFlowUseCase,
                     getRecordingByIdFlowUseCase = getRecordingByIdFlowUseCase,
-                    authConfig = authConfig,
+                    authConfig = authConfigState,
                     webSocketHandler = webSocketHandler,
                     tools = tools,
                     mcpServerManager = this@McpServerManagerImpl,
@@ -221,7 +220,7 @@ class McpServerManagerImpl @Inject constructor(
 
     override val authConfig: com.f0x1d.logfox.mcp.api.AuthConfig
         get() = com.f0x1d.logfox.mcp.api.AuthConfig(
-            enabled = authConfig.enabled,
-            apiKey = authConfig.apiKey,
+            enabled = authConfigState.enabled,
+            apiKey = authConfigState.apiKey,
         )
 }

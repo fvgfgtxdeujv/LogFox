@@ -9,7 +9,7 @@ import com.f0x1d.logfox.feature.database.impl.entity.AlertRuleRoomEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-internal interface AlertRuleDao {
+interface AlertRuleDao {
 
     @Query("SELECT * FROM AlertRule ORDER BY created_at DESC")
     fun getAllAsFlow(): Flow<List<AlertRuleRoomEntity>>
