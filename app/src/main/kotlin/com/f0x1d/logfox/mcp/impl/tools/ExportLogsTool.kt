@@ -8,7 +8,10 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import java.text.SimpleDateFormat
@@ -161,7 +164,7 @@ class ExportLogsTool(
             val tagExclude = excludeTag?.let { !logLine.tag.contains(it, ignoreCase = !excludeCaseSensitive) } ?: true
             val contentExclude = excludeContent?.let { !logLine.content.contains(it, ignoreCase = !excludeCaseSensitive) } ?: true
 
-            val levelMatch = levels?.let { it.contains(logLine.level.letter, ignoreCase = true) } ?: true
+            val levelMatch = levels?.let { logLine.level.letter.uppercase() in it.map { it.uppercase() } } ?: true
 
             uidMatch && pidMatch && tidMatch && pkgMatch && tagMatch && contentMatch &&
             uidExclude && pidExclude && tidExclude && pkgExclude && tagExclude && contentExclude &&
