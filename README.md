@@ -47,10 +47,10 @@
 
 ## 开发文档
 
-- [入门指南](doc/01-getting-started.md) - 环境变量、构建命令、构建要求、常见问题
-- [架构说明](doc/02-architecture.md) - 模块组织、项目结构、MCP 模块架构
-- [MCP 功能设计](doc/03-mcp-api.md) - MCP Server 端点、工具、过滤参数、请求/响应格式、认证、WebSocket
-- [CI/CD 操作流程](doc/04-cicd.md) - 提交代码、下载构建日志、快速定位错误
+- [入门指南](docs/01-getting-started.md) - 环境变量、构建命令、构建要求、常见问题
+- [架构说明](docs/02-architecture.md) - 模块组织、项目结构、MCP 模块架构
+- [MCP 功能设计](docs/03-mcp-api.md) - MCP Server 端点、工具、过滤参数、请求/响应格式、认证、WebSocket
+- [CI/CD 操作流程](docs/04-cicd.md) - 提交代码、下载构建日志、快速定位错误
 
 ## 许可证
 

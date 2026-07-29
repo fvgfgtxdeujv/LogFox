@@ -1,6 +1,6 @@
 # MCP 功能设计
 
-> 完整的 curl 调用示例、JSON-RPC 请求格式、Python 脚本示例请参见 [MCP API 完整文档](../docs/MCP_API.md)
+> 完整的 curl 调用示例、JSON-RPC 请求格式、Python 脚本示例请参见 [MCP API 完整文档](MCP_API.md)
 
 ## 核心设计
 
