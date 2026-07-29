@@ -56,6 +56,9 @@
     <string name="create">创建</string>
     <string name="empty_fields_desc">在过滤中，空字段将不会被使用</string>
     <string name="expanded_logs">展开日志</string>
+    <string name="expand_group">展开组</string>
+    <string name="expand_all_groups">展开所有组</string>
+    <string name="collapse_all_groups">折叠所有组</string>
     <string name="export">导出</string>
     <string name="str_import">导入</string>
     <string name="export_all">全部导出</string>
