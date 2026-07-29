@@ -20,11 +20,13 @@
 
 ## 下载
 
-<a href="https://f-droid.org/packages/com.f0x1d.logfox">
-    <img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png"
-         alt="在 F-Droid 上获取"
-         height="80" />
+<a href="https://github.com/F0x1d/LogFox/releases/latest">
+    <img src="https://img.shields.io/github/v/release/F0x1d/LogFox?label=GitHub%20Release"
+         alt="GitHub Release" />
 </a>
+
+[![Latest Release](https://img.shields.io/github/v/release/F0x1d/LogFox)](https://github.com/F0x1d/LogFox/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/F0x1d/LogFox/total)](https://github.com/F0x1d/LogFox/releases/latest)
 
 ## 截图
 
