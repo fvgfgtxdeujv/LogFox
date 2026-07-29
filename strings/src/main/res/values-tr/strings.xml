@@ -115,8 +115,13 @@
     <string name="crash_details">Çökme detayları</string>
     <string name="app_icon">Uygulama ikonu</string>
     <string name="information">BİLGİ</string>
+    <string name="no_crashes">Şu anda çökme yok</string>
+    <string name="sort_by_name">İsme göre</string>
+    <string name="sort_by_new">En yeniye göre</string>
+    <string name="sort_by_count">Çökme sayısına göre</string>
+    <string name="type_crashes">%s çökme</string>
+    <string name="crashes_of">%2$s uygulamasının %1$s çökmesi</string>
     <string name="releases">Yayınlananlar</string>
-    <string name="alpha_builds">ALPHA yapılar</string>
     <string name="select_all">Tümünü seç</string>
     <string name="date_time">Tarih, zaman</string>
     <string name="date_format">Tarih formaıt</string>

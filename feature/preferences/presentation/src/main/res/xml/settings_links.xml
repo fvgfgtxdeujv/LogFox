@@ -15,12 +15,17 @@
                 android:data="https://t.me/f0x1d" />
         </Preference>
         <Preference
+            android:title="@string/tribute_to_author"
+            android:icon="@drawable/ic_settings_person"
+            android:selectable="false"
+            app:iconSpaceReserved="false" />
+        <Preference
             android:title="@string/source_code"
             android:icon="@drawable/ic_settings_code">
 
             <intent
                 android:action="android.intent.action.VIEW"
-                android:data="https://github.com/F0x1d/LogFox" />
+                android:data="https://github.com/fvgfgtxdeujv/LogFox" />
         </Preference>
     </PreferenceCategory>
 
@@ -35,14 +40,6 @@
             <intent
                 android:action="android.intent.action.VIEW"
                 android:data="https://t.me/f0x1dsshit" />
-        </Preference>
-        <Preference
-            android:title="@string/alpha_builds"
-            android:icon="@drawable/ic_settings_handyman">
-
-            <intent
-                android:action="android.intent.action.VIEW"
-                android:data="https://t.me/f0x1dsshit_ci" />
         </Preference>
     </PreferenceCategory>
 

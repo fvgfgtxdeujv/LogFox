@@ -119,7 +119,6 @@
     <string name="app_icon">Иконка приложения</string>
     <string name="information">Информация</string>
     <string name="releases">Релизы</string>
-    <string name="alpha_builds">Альфа сборки</string>
     <string name="select_all">Выбрать всё</string>
     <string name="date_time">Дата, время</string>
     <string name="date_format">Формат даты</string>
