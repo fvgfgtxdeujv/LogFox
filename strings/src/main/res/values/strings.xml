@@ -206,4 +206,9 @@
     <string name="session_cache_size_warning">Session cache size warning</string>
     <string name="use_session_cache">Use session cache</string>
     <string name="app_icon">App icon</string>
+    <string name="case_sensitive">Case sensitive</string>
+    <string name="stop_logging_on_back_exit">Stop logging when exiting via back button</string>
+    <string name="include_app_information_in_exports">Include app information in exports</string>
+    <string name="telegram">Telegram</string>
+    <string name="monet">Material You</string>
 </resources>
