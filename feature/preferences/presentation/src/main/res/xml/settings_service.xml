@@ -90,7 +90,7 @@
         <Preference
             android:title="@string/mcp_server_status"
             android:key="pref_mcp_server_status"
-            android:selectable="false"
+            android:selectable="true"
             app:iconSpaceReserved="false" />
 
         <SwitchPreferenceCompat
@@ -99,6 +99,20 @@
             android:defaultValue="false"
             app:singleLineTitle="false"
             app:widgetLayout="@layout/preference_material_switch"
+            app:iconSpaceReserved="false" />
+
+        <Preference
+            android:title="@string/mcp_server_detail_port"
+            android:key="pref_mcp_server_detail_port"
+            android:selectable="false"
+            app:isPreferenceVisible="false"
+            app:iconSpaceReserved="false" />
+
+        <Preference
+            android:title="@string/mcp_server_detail_host"
+            android:key="pref_mcp_server_detail_host"
+            android:selectable="false"
+            app:isPreferenceVisible="false"
             app:iconSpaceReserved="false" />
 
         <Preference

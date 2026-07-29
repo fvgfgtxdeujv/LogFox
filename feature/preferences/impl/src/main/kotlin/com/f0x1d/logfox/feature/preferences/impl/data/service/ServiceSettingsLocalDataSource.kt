@@ -11,4 +11,5 @@ internal interface ServiceSettingsLocalDataSource {
     fun exportLogsAsTxt(): Preference<Boolean>
     fun mcpServerPort(): Preference<Int>
     fun mcpServerHost(): Preference<String>
+    fun mcpServerEnabled(): Preference<Boolean>
 }

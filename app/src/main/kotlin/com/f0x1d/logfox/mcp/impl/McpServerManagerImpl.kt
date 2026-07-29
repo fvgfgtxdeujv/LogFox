@@ -223,4 +223,7 @@ class McpServerManagerImpl @Inject constructor(
             enabled = authConfigState.enabled,
             apiKey = authConfigState.apiKey,
         )
+
+    override val toolsCount: Int
+        get() = tools.size
 }

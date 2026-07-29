@@ -11,4 +11,5 @@ interface ServiceSettingsRepository {
     fun exportLogsAsTxt(): PreferenceStateFlow<Boolean>
     fun mcpServerPort(): PreferenceStateFlow<Int>
     fun mcpServerHost(): PreferenceStateFlow<String>
+    fun mcpServerEnabled(): PreferenceStateFlow<Boolean>
 }

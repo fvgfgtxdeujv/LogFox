@@ -183,4 +183,14 @@
     <string name="mcp_server_status">服务器状态</string>
     <string name="mcp_server_status_running">运行在端口 %d</string>
     <string name="mcp_server_status_stopped">已停止</string>
+    <string name="mcp_server_detail_port">端口</string>
+    <string name="mcp_server_detail_host">绑定地址</string>
+    <string name="mcp_server_detail_auth">认证状态</string>
+    <string name="mcp_server_detail_tools">可用工具</string>
+    <string name="mcp_server_auth_enabled">已启用</string>
+    <string name="mcp_server_auth_disabled">已关闭</string>
+    <string name="mcp_server_status_checking">检查中...</string>
+    <string name="mcp_server_status_failed">启动失败</string>
+    <string name="mcp_server_disable_confirm_title">关闭 MCP 服务器</string>
+    <string name="mcp_server_disable_confirm_message">关闭将停止 AI 集成功能，确定继续？</string>
 </resources>

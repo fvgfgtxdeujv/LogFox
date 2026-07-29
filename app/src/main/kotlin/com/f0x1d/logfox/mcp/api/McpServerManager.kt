@@ -14,6 +14,8 @@ interface McpServerManager {
 
     val authConfig: AuthConfig
 
+    val toolsCount: Int
+
     companion object {
         const val DEFAULT_PORT = 8765
         const val DEFAULT_HOST = "0.0.0.0"

@@ -201,4 +201,14 @@
     <string name="mcp_server_status">Server status</string>
     <string name="mcp_server_status_running">Running on port %d</string>
     <string name="mcp_server_status_stopped">Stopped</string>
+    <string name="mcp_server_detail_port">Port</string>
+    <string name="mcp_server_detail_host">Bind address</string>
+    <string name="mcp_server_detail_auth">Authentication</string>
+    <string name="mcp_server_detail_tools">Available tools</string>
+    <string name="mcp_server_auth_enabled">Enabled</string>
+    <string name="mcp_server_auth_disabled">Disabled</string>
+    <string name="mcp_server_status_checking">Checking...</string>
+    <string name="mcp_server_status_failed">Startup failed</string>
+    <string name="mcp_server_disable_confirm_title">Disable MCP Server</string>
+    <string name="mcp_server_disable_confirm_message">Disabling will stop AI integration features. Continue?</string>
 </resources>
